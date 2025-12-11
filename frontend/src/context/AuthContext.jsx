@@ -9,11 +9,7 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
     const token = localStorage.getItem("token");
-
-    if (savedUser && token) {
-      setUser(JSON.parse(savedUser));
-    }
-
+    if (savedUser && token) setUser(JSON.parse(savedUser));
     setLoading(false);
   }, []);
 
@@ -24,20 +20,12 @@ export function AuthProvider({ children }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
-
       const data = await res.json();
-
-      if (!res.ok) {
-        return { success: false, message: data.msg || "Error al iniciar sesión" };
-      }
-
-      // Guardar token + usuario
+      if (!res.ok) return { success: false, message: data.msg || "Error" };
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
       setUser(data.user);
-
       return { success: true };
-
     } catch (err) {
       return { success: false, message: "No se pudo conectar al servidor." };
     }
@@ -50,15 +38,9 @@ export function AuthProvider({ children }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, email, password }),
       });
-
       const data = await res.json();
-
-      if (!res.ok) {
-        return { success: false, message: data.msg };
-      }
-
+      if (!res.ok) return { success: false, message: data.msg || "Error" };
       return { success: true };
-
     } catch (err) {
       return { success: false, message: "No se pudo conectar al servidor." };
     }
