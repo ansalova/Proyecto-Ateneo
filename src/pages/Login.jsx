@@ -1,40 +1,31 @@
-import React, { useState, useContext } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { AuthContext } from '../context/AuthContext';
+import React, { useState, useContext } from "react";
+import { AuthContext } from "../context/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 export default function Login() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [errorMsg, setErrorMsg] = useState('');
-  const [loadingBtn, setLoadingBtn] = useState(false);
-
   const { login } = useContext(AuthContext);
   const nav = useNavigate();
 
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
+
   const submit = async (e) => {
     e.preventDefault();
-    setErrorMsg('');
-    setLoadingBtn(true);
+    setErrorMsg("");
 
-    try {
-      const result = await login(email, password);
+    const result = await login({ email, password });
 
-      if (!result.success) {
-        setErrorMsg(result.message);
-        setLoadingBtn(false);
-        return;
-      }
-
-      nav('/dashboard');
-    } catch (error) {
-      setErrorMsg("Error inesperado en el inicio de sesión");
+    if (!result.success) {
+      setErrorMsg(result.message);
+      return;
     }
 
-    setLoadingBtn(false);
+    nav("/dashboard");
   };
 
   return (
-    <div className="card" style={{ maxWidth: 420, margin: '0 auto' }}>
+    <div className="card" style={{ maxWidth: 420, margin: "0 auto" }}>
       <h2>Iniciar sesión</h2>
 
       {errorMsg && (
@@ -45,24 +36,22 @@ export default function Login() {
         <label>Email</label>
         <input
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          style={{ width: '100%', padding: 8, marginBottom: 8 }}
           type="email"
+          onChange={(e) => setEmail(e.target.value)}
           required
+          style={{ width: "100%", padding: 8, marginBottom: 8 }}
         />
 
         <label>Contraseña</label>
         <input
-          type="password"
           value={password}
+          type="password"
           onChange={(e) => setPassword(e.target.value)}
-          style={{ width: '100%', padding: 8, marginBottom: 8 }}
           required
+          style={{ width: "100%", padding: 8, marginBottom: 8 }}
         />
 
-        <button className="button" type="submit" disabled={loadingBtn}>
-          {loadingBtn ? "Ingresando..." : "Entrar"}
-        </button>
+        <button className="button" type="submit">Entrar</button>
       </form>
     </div>
   );
