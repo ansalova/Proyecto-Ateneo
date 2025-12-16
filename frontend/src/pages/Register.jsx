@@ -8,12 +8,13 @@ export default function Register() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [role, setRole] = useState("student");
   const [msg, setMsg] = useState("");
 
   const submit = async (e) => {
     e.preventDefault();
     setMsg("");
-    const r = await register({ name, email, password });
+    const r = await register({ name, email, password, role });
     if (!r.success) { setMsg(r.message); return; }
     nav("/login");
   };
@@ -29,6 +30,14 @@ export default function Register() {
         <input type="email" value={email} onChange={e=>setEmail(e.target.value)} required />
         <label>Password</label>
         <input type="password" value={password} onChange={e=>setPassword(e.target.value)} required />
+        
+        <label>Rol</label>
+        <select value={role} onChange={e=>setRole(e.target.value)} style={{ width: "100%", padding: "8px", marginBottom: "10px" }}>
+          <option value="student">Estudiante</option>
+          <option value="teacher">Profesor</option>
+          <option value="admin">Administrador</option>
+        </select>
+
         <button className="button" type="submit">Registrar</button>
       </form>
     </div>

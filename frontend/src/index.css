@@ -74,6 +74,18 @@ body {
 .button--secondary { background: var(--secondary); box-shadow: 0 8px 18px rgba(11,99,246,.25); }
 .button--danger { background: var(--danger); box-shadow: 0 8px 18px rgba(239,68,68,.25); }
 
+.button-outline {
+  background: transparent;
+  color: var(--primary);
+  border: 1px solid var(--primary);
+  box-shadow: none;
+}
+.button-outline:hover {
+  background: var(--primary);
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(31, 122, 74, 0.3);
+}
+
 .badge {
   display: inline-flex;
   align-items: center;

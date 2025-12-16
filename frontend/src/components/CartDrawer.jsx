@@ -1,12 +1,19 @@
 import React, { useContext } from 'react'
 import { CartContext } from '../context/CartContext'
 import { useCartUI } from '../context/CartUIContext'
+import { useNavigate } from 'react-router-dom'
 
 export default function CartDrawer() {
   const { items, remove, total, clear } = useContext(CartContext)
   const { isOpen, closeCart } = useCartUI()
+  const navigate = useNavigate()
 
   if (!isOpen) return null
+
+  const goToCart = () => {
+    closeCart()
+    navigate('/carrito')
+  }
 
   return (
     <div
@@ -62,9 +69,15 @@ export default function CartDrawer() {
 
         <p>Total: ${total().toLocaleString('es-CO')}</p>
 
-        <button className="button" onClick={clear}>
-          Vaciar
-        </button>
+        <div style={{ display: 'flex', gap: '10px', flexDirection: 'column' }}>
+          <button className="button" onClick={goToCart}>
+            Ver Carrito Completo
+          </button>
+          
+          <button className="button button--secondary" onClick={clear}>
+            Vaciar
+          </button>
+        </div>
       </div>
     </div>
   )

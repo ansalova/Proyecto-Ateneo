@@ -38,7 +38,16 @@ export default function Header() {
 
         {user ? (
           <>
-            <span style={{ color: '#fff' }}>{user.name}</span>
+            {(user.role === 'teacher' || user.role === 'admin') && (
+              <Link to="/profesor">
+                <button className="button" style={{ backgroundColor: '#ff9800' }}>
+                  Panel Profesor
+                </button>
+              </Link>
+            )}
+            <span style={{ color: '#fff' }}>
+              {user.name} <small style={{ opacity: 0.8 }}>({user.role === 'teacher' ? 'Profesor' : user.role === 'admin' ? 'Admin' : 'Estudiante'})</small>
+            </span>
             <button
               className="button"
               onClick={() => {

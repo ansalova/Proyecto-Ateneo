@@ -19,6 +19,11 @@ export function CartProvider({ children }) {
     })
   }
 
+  const updateQty = (id, newQty) => {
+    if (newQty < 1) return
+    setItems(prev => prev.map(p => (p.id === id ? { ...p, qty: newQty } : p)))
+  }
+
   const remove = id => {
     setItems(prev => prev.filter(p => p.id !== id))
   }
@@ -32,7 +37,7 @@ export function CartProvider({ children }) {
   }
 
   return (
-    <CartContext.Provider value={{ items, add, remove, clear, total }}>
+    <CartContext.Provider value={{ items, add, updateQty, remove, clear, total }}>
       {children}
     </CartContext.Provider>
   )

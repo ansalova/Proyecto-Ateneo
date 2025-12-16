@@ -1,4 +1,5 @@
 import React, { createContext, useState, useEffect } from "react";
+import API from "../services/api";
 
 export const AuthContext = createContext();
 
@@ -9,46 +10,40 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
     const token = localStorage.getItem("token");
-    if (savedUser && token) setUser(JSON.parse(savedUser));
+    if (savedUser && token) {
+        setUser(JSON.parse(savedUser));
+        API.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+    }
     setLoading(false);
   }, []);
 
   const login = async ({ email, password }) => {
     try {
-      const res = await fetch("http://localhost:5000/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-      const data = await res.json();
-      if (!res.ok) return { success: false, message: data.msg || "Error" };
+      const { data } = await API.post("/api/auth/login", { email, password });
+      
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
+      API.defaults.headers.common["Authorization"] = `Bearer ${data.token}`;
       setUser(data.user);
       return { success: true };
     } catch (err) {
-      return { success: false, message: "No se pudo conectar al servidor." };
+      return { success: false, message: err.response?.data?.msg || "No se pudo conectar al servidor." };
     }
   };
 
-  const register = async ({ name, email, password }) => {
+  const register = async ({ name, email, password, role }) => {
     try {
-      const res = await fetch("http://localhost:5000/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
-      });
-      const data = await res.json();
-      if (!res.ok) return { success: false, message: data.msg || "Error" };
+      const { data } = await API.post("/api/auth/register", { name, email, password, role });
       return { success: true };
     } catch (err) {
-      return { success: false, message: "No se pudo conectar al servidor." };
+      return { success: false, message: err.response?.data?.msg || "No se pudo conectar al servidor." };
     }
   };
 
   const logout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
+    delete API.defaults.headers.common["Authorization"];
     setUser(null);
   };
 
