@@ -111,10 +111,35 @@ body {
   gap: 1.2rem;
 }
 
+/* Imágenes fluidas */
+img { max-width: 100%; height: auto; }
+
 /* Responsive */
 @media (max-width: 640px) {
   .nav { flex-direction: column; align-items: flex-start; }
   .container { padding: .75rem; }
+}
+
+/* Hero grid */
+.hero-grid {
+  display: grid;
+  grid-template-columns: 1.2fr .8fr;
+  gap: 16px;
+  align-items: center;
+}
+.hero-image { display: flex; justify-content: center; }
+@media (max-width: 768px) {
+  .hero-grid { grid-template-columns: 1fr; }
+  .hero-image { display: none; }
+}
+
+/* Tablas responsivas */
+.table-responsive { width: 100%; overflow-x: auto; }
+.table-responsive table { min-width: 640px; }
+
+/* Botones en móviles */
+@media (max-width: 480px) {
+  .button { width: 100%; }
 }
 
 /* =============================

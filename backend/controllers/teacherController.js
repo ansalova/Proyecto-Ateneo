@@ -1,15 +1,17 @@
-import User from "../models/User.js";
+import { findStudents } from "../models/User.js";
 
 // @desc    Obtener lista de estudiantes
 // @route   GET /api/teacher/students
 // @access  Private (Teacher/Admin)
 export const getStudents = async (req, res) => {
   try {
-    // Asumimos que los estudiantes tienen role 'user' o 'student'
-    const students = await User.find({ role: { $in: ['user', 'student'] } }).select('-password');
+    const students = await findStudents();
     res.json(students);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    if (error.message === "DB_NOT_CONFIGURED") {
+      return res.status(500).json({ msg: "Base de datos no configurada. Configure PostgreSQL (DATABASE_URL) e intente nuevamente." });
+    }
+    res.status(500).json({ msg: "Error interno del servidor" });
   }
 };
 

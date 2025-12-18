@@ -33,4 +33,5 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 Servidor corriendo en puerto ${PORT}`));
+const HOST = process.env.HOST || "127.0.0.1";
+app.listen(PORT, HOST, () => console.log(`🚀 Servidor corriendo en ${HOST}:${PORT}`));

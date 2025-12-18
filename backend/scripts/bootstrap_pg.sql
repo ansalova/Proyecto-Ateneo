@@ -1,0 +1,15 @@
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'Ateneo') THEN
+    CREATE ROLE "Ateneo" LOGIN PASSWORD '1234567';
+  END IF;
+END $$;
+
+SELECT 'CREATE DATABASE ateneo OWNER "Ateneo"'
+WHERE NOT EXISTS (SELECT 1 FROM pg_database WHERE datname = 'ateneo');
+\gexec
+
+ALTER DATABASE ateneo OWNER TO "Ateneo";
+GRANT ALL PRIVILEGES ON DATABASE ateneo TO "Ateneo";
+ALTER SCHEMA public OWNER TO "Ateneo";
+GRANT USAGE, CREATE ON SCHEMA public TO "Ateneo";

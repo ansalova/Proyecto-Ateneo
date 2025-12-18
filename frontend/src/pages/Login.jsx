@@ -21,7 +21,7 @@ export default function Login() {
       return;
     }
 
-    nav("/dashboard");
+    nav("/");
   };
 
   return (

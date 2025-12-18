@@ -46,7 +46,7 @@ export default function TeacherDashboard() {
       </div>
 
       {tab === "students" && (
-        <div>
+        <div className="table-responsive">
           <h3>Lista de Estudiantes</h3>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
@@ -70,7 +70,7 @@ export default function TeacherDashboard() {
       )}
 
       {tab === "grades" && (
-        <div>
+        <div className="table-responsive">
           <h3>Calificaciones</h3>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>

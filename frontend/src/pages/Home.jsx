@@ -44,7 +44,7 @@ export default function Home() {
     <div>
       {/* HERO */}
       <section className="card" style={{ padding: '2rem', marginBottom: 20, background: 'linear-gradient(180deg, #e8fff3, #ffffff)' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr .8fr', gap: 16, alignItems: 'center' }}>
+        <div className="hero-grid">
           <div>
             <div className="badge" style={{ marginBottom: 8 }}>🏫 Colegio Ateneo</div>
             <h1 style={{ margin: 0, fontSize: '2rem' }}>Formación integral con excelencia académica</h1>
@@ -60,7 +60,7 @@ export default function Home() {
               )}
             </div>
           </div>
-          <div style={{ display: 'none', justifyContent: 'center' }}>
+          <div className="hero-image">
             {/* Imagen opcional o ilustración */}
             <img src={MENSUALIDAD.image} alt="Colegio" style={{ width: '100%', borderRadius: 14, boxShadow: '0 10px 30px rgba(2,6,23,0.08)' }} />
           </div>
@@ -244,4 +244,3 @@ export default function Home() {
     </div>
   )
 }
-
