@@ -17,6 +17,7 @@ const PaymentMethodsPage = lazy(() => import("./pages/PaymentMethodsPage"));
 const ConfirmacionPago = lazy(() => import("./pages/ConfirmacionPago"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const TeacherDashboard = lazy(() => import("./pages/TeacherDashboard"));
+const Orders = lazy(() => import("./pages/Orders"));
 
 export default function App() {
   return (
@@ -65,6 +66,14 @@ export default function App() {
               element={
                 <ProtectedRoute>
                   <Dashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/ordenes"
+              element={
+                <ProtectedRoute>
+                  <Orders />
                 </ProtectedRoute>
               }
             />

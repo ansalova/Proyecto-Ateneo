@@ -46,7 +46,7 @@ export default function Home() {
       <section className="card" style={{ padding: '2rem', marginBottom: 20, background: 'linear-gradient(180deg, #e8fff3, #ffffff)' }}>
         <div className="hero-grid">
           <div>
-            <div className="badge" style={{ marginBottom: 8 }}>🏫 Colegio Ateneo</div>
+            <div className="badge" style={{ marginBottom: 8 }}>Colegio Ateneo</div>
             <h1 style={{ margin: 0, fontSize: '2rem' }}>Formación integral con excelencia académica</h1>
             <p style={{ color: '#64748b', marginTop: 8 }}>
               Bienvenido al portal del Colegio Ateneo. Aquí encontrarás información general del colegio y podrás realizar el pago de la mensualidad de forma segura y rápida.
@@ -61,8 +61,11 @@ export default function Home() {
             </div>
           </div>
           <div className="hero-image">
-            {/* Imagen opcional o ilustración */}
-            <img src={MENSUALIDAD.image} alt="Colegio" style={{ width: '100%', borderRadius: 14, boxShadow: '0 10px 30px rgba(2,6,23,0.08)' }} />
+            <img
+              src="/escudo-colegio.png.PNG"
+              alt="Escudo Colegio Ateneo"
+              style={{ width: 220, height: 'auto', borderRadius: 14, boxShadow: '0 10px 30px rgba(2,6,23,0.08)' }}
+            />
           </div>
         </div>
       </section>
@@ -73,14 +76,13 @@ export default function Home() {
           <div className="modal-window" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <div className="modal-title">Servicios</div>
-              <button className="modal-close" onClick={() => setShowServices(false)}>✕</button>
+              <button className="modal-close" onClick={() => setShowServices(false)}>Cerrar</button>
             </div>
             <div className="modal-body">
               <div className="grid">
                 {/* Mensualidad en modal */}
                 <div className="card" style={{ padding: 16 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div className="icon" style={{ width: 42, height: 42, borderRadius: 10, background: '#eef2ff', color: '#1d4ed8', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>📘</div>
                     <div>
                       <h3 style={{ margin: 0 }}>{MENSUALIDAD.name}</h3>
                       <small style={{ color: '#64748b' }}>{MENSUALIDAD.description}</small>
@@ -156,7 +158,7 @@ export default function Home() {
             </p>
           </div>
           <div className="card" style={{ padding: 20, textAlign: "center", transition: "transform 0.2s" }}>
-            <div style={{ fontSize: "2.5rem", marginBottom: "1rem" }}>🎓</div>
+            <div style={{ fontSize: "2.5rem", marginBottom: "1rem" }}></div>
             <h3 style={{ margin: '8px 0 8px', color: "#1e293b" }}>Grados 6° a 11°</h3>
             <p style={{ color: '#64748b', fontSize: "0.95rem" }}>
               Cobertura completa del bachillerato. Ingresa en el ciclo que te corresponda y culmina tus estudios hasta obtener tu título.
@@ -169,14 +171,13 @@ export default function Home() {
       <section id="servicios" className="card" style={{ marginBottom: 20 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <h2 style={{ marginTop: 0 }}>Servicios</h2>
-          <span className="badge">💳 Pagos</span>
+          <span className="badge">Pagos</span>
         </div>
 
         <div className="grid">
           {/* Mensualidad */}
           <div className="card" style={{ padding: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div className="icon" style={{ width: 42, height: 42, borderRadius: 10, background: '#eef2ff', color: '#1d4ed8', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>📘</div>
               <div>
                 <h3 style={{ margin: 0 }}>{MENSUALIDAD.name}</h3>
                 <small style={{ color: '#64748b' }}>{MENSUALIDAD.description}</small>

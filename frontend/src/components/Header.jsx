@@ -45,6 +45,11 @@ export default function Header() {
                 </button>
               </Link>
             )}
+            <Link to="/ordenes">
+              <button className="button" style={{ backgroundColor: '#1d4ed8' }}>
+                Mis Órdenes
+              </button>
+            </Link>
             <span style={{ color: '#fff' }}>
               {user.name} <small style={{ opacity: 0.8 }}>({user.role === 'teacher' ? 'Profesor' : user.role === 'admin' ? 'Admin' : 'Estudiante'})</small>
             </span>

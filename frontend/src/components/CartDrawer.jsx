@@ -30,7 +30,7 @@ export default function CartDrawer() {
       <div className="card">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <h4>Carrito</h4>
-          <button onClick={closeCart} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 18 }}>✕</button>
+          <button onClick={closeCart} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 18 }}>Cerrar</button>
         </div>
 
         {items.length === 0 && <p>Sin productos</p>}

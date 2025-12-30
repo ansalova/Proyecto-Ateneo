@@ -10,7 +10,6 @@ export default function Carrito() {
     return (
       <div className="container" style={{ textAlign: 'center', marginTop: '4rem' }}>
         <div className="card" style={{ maxWidth: 500, margin: '0 auto', padding: '3rem' }}>
-          <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🛒</div>
           <h2>Tu carrito está vacío</h2>
           <p style={{ color: '#64748b', marginBottom: '2rem' }}>
             Parece que aún no has agregado servicios a tu carrito.
@@ -72,7 +71,7 @@ export default function Carrito() {
                   style={{ padding: '0.5rem', borderRadius: 8 }}
                   title="Eliminar"
                 >
-                  ✕
+                  Eliminar
                 </button>
               </div>
             </div>

@@ -49,35 +49,30 @@ export default function PaymentMethodsPage() {
         <PaymentCard 
           title="Tarjeta de Crédito / Débito"
           description="Visa, MasterCard, American Express"
-          icon="💳"
           onClick={() => handleSelect("tarjeta")}
         />
 
         <PaymentCard 
           title="PSE"
           description="Pago seguro en línea"
-          icon="🏦"
           onClick={() => handleSelect("pse")}
         />
 
         <PaymentCard 
           title="Nequi"
           description="Pago rápido desde tu celular"
-          icon="📱"
           onClick={() => handleSelect("nequi")}
         />
 
         <PaymentCard 
           title="DaviPlata"
           description="Pagos desde monedero digital"
-          icon="💼"
           onClick={() => handleSelect("daviplata")}
         />
 
         <PaymentCard 
           title="Pago en Secretaría del Colegio"
           description="Realice el pago de forma presencial"
-          icon="🏫"
           onClick={() => handleSelect("oficina")}
         />
       </div>

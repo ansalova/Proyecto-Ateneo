@@ -3,7 +3,10 @@ import API from './api'
 
 // Inicia un checkout real dependiendo del método
 export async function startCheckout({ method, amount, metadata }) {
-  const { data } = await API.post('/api/payments/checkout', { method, amount, metadata })
+  const token = localStorage.getItem('token')
+  const { data } = await API.post('/api/payments/checkout', { method, amount, metadata }, {
+    headers: { Authorization: `Bearer ${token}` }
+  })
   return data
 }
 

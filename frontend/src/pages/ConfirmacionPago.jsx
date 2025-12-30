@@ -1,10 +1,13 @@
 import { useSearchParams, Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { getOrderDetails } from "../services/orders";
 
 export default function ConfirmacionPago() {
   const [params] = useSearchParams();
   const metodo = params.get("method");
   const provider = params.get("provider");
   const result = params.get("result");
+  const [orderStatus, setOrderStatus] = useState("");
 
   // Para métodos offline
   const reference = params.get('reference');
@@ -21,6 +24,23 @@ export default function ConfirmacionPago() {
   };
 
   const showMpResult = provider === 'mp' && !!result;
+  const canFetch = Boolean(reference);
+
+  useEffect(() => {
+    let active = true
+    ;(async () => {
+      if (!canFetch) return
+      try {
+        const d = await getOrderDetails(reference)
+        if (!active) return
+        setOrderStatus(d?.order?.status || "")
+      } catch {
+        if (!active) return
+        setOrderStatus("")
+      }
+    })()
+    return () => { active = false }
+  }, [canFetch, reference])
 
   return (
     <div className="confirmacion-container">
@@ -29,6 +49,7 @@ export default function ConfirmacionPago() {
       {showMpResult ? (
         <>
           <p>Resultado del pago: <strong>{result}</strong></p>
+          {orderStatus && (<p>Estado actual de la orden: <strong>{orderStatus}</strong></p>)}
           <p>Si tu pago fue aprobado, recibirás un correo de confirmación.</p>
         </>
       ) : reference ? (
@@ -37,6 +58,7 @@ export default function ConfirmacionPago() {
           <p><strong>Referencia:</strong> {reference}</p>
           {account && (<p><strong>Número:</strong> {account}</p>)}
           {message && (<p>{message}</p>)}
+          {orderStatus && (<p>Estado actual de la orden: <strong>{orderStatus}</strong></p>)}
         </>
       ) : (
         <p>{mensajes[metodo] || "Método no encontrado"}</p>

@@ -1,4 +1,6 @@
 import { MercadoPagoConfig, Preference, Payment } from 'mercadopago';
+import { createOrder, addOrderItems, findOrderByReference, listOrdersByUser, listOrderItems, updateOrderStatus } from '../models/Order.js';
+import { createPayment, listPaymentsByOrder, findPaymentByMpId, updatePaymentStatus } from '../models/Payment.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -22,7 +24,6 @@ if (mpEnabled) {
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:5000';
 
-// En memoria (para demo). En producción usar DB.
 const orders = new Map();
 
 function generateReference() {
@@ -61,14 +62,16 @@ export const createCheckout = async (req, res) => {
 
     const external_reference = generateReference();
 
-    // Guardar orden inicial
-    orders.set(external_reference, {
-      status: 'pending',
-      method,
+    const dbOrder = await createOrder({
+      external_reference,
+      user_id: req.user?.id || null,
       amount: Number(amount),
-      metadata: metadata || {},
-      createdAt: new Date().toISOString()
+      method,
+      status: 'pending',
+      metadata: metadata || {}
     });
+    const itemsForDb = buildItemsFromMetadata(metadata, amount).map(i => ({ ...i, metadata: metadata }));
+    await addOrderItems(dbOrder.id, itemsForDb);
 
     // ONLINE: Mercado Pago
     if (method === 'tarjeta' || method === 'pse') {
@@ -83,9 +86,9 @@ export const createCheckout = async (req, res) => {
       const preferenceBody = {
         items,
         back_urls: {
-          success: `${FRONTEND_URL}/confirmacion-pago?provider=mp&result=success`,
-          pending: `${FRONTEND_URL}/confirmacion-pago?provider=mp&result=pending`,
-          failure: `${FRONTEND_URL}/confirmacion-pago?provider=mp&result=failure`
+          success: `${FRONTEND_URL}/confirmacion-pago?provider=mp&result=success&reference=${external_reference}`,
+          pending: `${FRONTEND_URL}/confirmacion-pago?provider=mp&result=pending&reference=${external_reference}`,
+          failure: `${FRONTEND_URL}/confirmacion-pago?provider=mp&result=failure&reference=${external_reference}`
         },
         auto_return: 'approved',
         notification_url: `${BACKEND_URL}/api/payments/webhook/mercadopago`,
@@ -95,11 +98,12 @@ export const createCheckout = async (req, res) => {
       };
 
       const pref = await preferenceClient.create({ body: preferenceBody });
-
-      orders.set(external_reference, {
-        ...orders.get(external_reference),
+      await createPayment({
+        order_id: dbOrder.id,
+        provider: 'mercadopago',
         preference_id: pref.id,
-        provider: 'mercadopago'
+        status: 'initiated',
+        raw_response: pref
       });
 
       return res.json({
@@ -131,6 +135,12 @@ export const createCheckout = async (req, res) => {
         }
       };
 
+      await createPayment({
+        order_id: dbOrder.id,
+        provider: 'offline',
+        status: 'pending',
+        raw_response: { instructions: instructions[method] }
+      });
       return res.json({
         success: true,
         provider: 'offline',
@@ -150,7 +160,56 @@ export const createCheckout = async (req, res) => {
 export const receiveWebhook = async (req, res) => {
   try {
     const body = req.body || {};
-    console.log('[MP] WEBHOOK POST:', JSON.stringify(body));
+    const q = req.query || {};
+    const id =
+      body?.data?.id ||
+      body?.id ||
+      q?.id ||
+      q?.data_id ||
+      null;
+
+    if (!id) {
+      console.warn('[MP] webhook sin id', JSON.stringify({ body, q }));
+      return res.sendStatus(200);
+    }
+
+    const info = await paymentClient.get({ id });
+    const status = info?.status || 'unknown';
+    const external_reference = info?.external_reference || info?.metadata?.external_reference || null;
+
+    if (!external_reference) {
+      console.warn('[MP] pago sin external_reference', JSON.stringify(info));
+      return res.sendStatus(200);
+    }
+
+    const order = await findOrderByReference(external_reference);
+    if (!order) {
+      console.warn('[MP] orden no encontrada para ref', external_reference);
+      return res.sendStatus(200);
+    }
+
+    const existing = await findPaymentByMpId(String(id));
+    if (existing) {
+      await updatePaymentStatus({ id: existing.id, status, raw_response: info });
+    } else {
+      await createPayment({
+        order_id: order.id,
+        provider: 'mercadopago',
+        mp_payment_id: String(id),
+        status,
+        raw_response: info
+      });
+    }
+
+    const newStatus =
+      status === 'approved' ? 'approved' :
+      status === 'pending' ? 'pending' :
+      status === 'in_process' ? 'pending' :
+      status === 'rejected' ? 'rejected' : order.status;
+    if (newStatus !== order.status) {
+      await updateOrderStatus({ id: order.id, status: newStatus });
+    }
+
     res.sendStatus(200);
   } catch (e) {
     console.error('webhook POST error:', e);
@@ -168,9 +227,72 @@ export const receiveWebhookGet = async (req, res) => {
   }
 };
 
-export const getOrder = (req, res) => {
+export const getOrder = async (req, res) => {
   const ref = req.params.reference;
-  const o = orders.get(ref);
+  const o = await findOrderByReference(ref);
   if (!o) return res.status(404).json({ error: 'not_found' });
   res.json(o);
+};
+
+export const listOrders = async (req, res) => {
+  const os = await listOrdersByUser(req.user.id);
+  res.json(os);
+};
+
+export const getOrderDetails = async (req, res) => {
+  const ref = req.params.reference;
+  const o = await findOrderByReference(ref);
+  if (!o) return res.status(404).json({ error: 'not_found' });
+  const items = await listOrderItems(o.id);
+  const payments = await listPaymentsByOrder(o.id);
+  res.json({ order: o, items, payments });
+};
+
+export const retryCheckout = async (req, res) => {
+  try {
+    const ref = req.params.reference;
+    const o = await findOrderByReference(ref);
+    if (!o) return res.status(404).json({ error: 'not_found' });
+
+    if (!mpEnabled) return res.status(500).json({ error: 'Mercado Pago no configurado' });
+    if (!(o.method === 'tarjeta' || o.method === 'pse')) return res.status(400).json({ error: 'Solo aplica para tarjeta/PSE' });
+
+    const items = buildItemsFromMetadata(o.metadata, o.amount);
+    const payment_methods = {};
+    if (o.method === 'pse') payment_methods.default_payment_method_id = 'pse';
+
+    const preferenceBody = {
+      items,
+      back_urls: {
+        success: `${FRONTEND_URL}/confirmacion-pago?provider=mp&result=success&reference=${ref}`,
+        pending: `${FRONTEND_URL}/confirmacion-pago?provider=mp&result=pending&reference=${ref}`,
+        failure: `${FRONTEND_URL}/confirmacion-pago?provider=mp&result=failure&reference=${ref}`
+      },
+      auto_return: 'approved',
+      notification_url: `${BACKEND_URL}/api/payments/webhook/mercadopago`,
+      external_reference: ref,
+      metadata: { ...o.metadata, method: o.method },
+      payment_methods
+    };
+
+    const pref = await preferenceClient.create({ body: preferenceBody });
+    await createPayment({
+      order_id: o.id,
+      provider: 'mercadopago',
+      preference_id: pref.id,
+      status: 'initiated',
+      raw_response: pref
+    });
+
+    res.json({
+      success: true,
+      provider: 'mercadopago',
+      redirectUrl: pref.init_point || pref.sandbox_init_point,
+      preferenceId: pref.id,
+      externalReference: ref
+    });
+  } catch (e) {
+    console.error('retry error:', e);
+    res.status(500).json({ error: 'internal_error' });
+  }
 };

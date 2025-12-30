@@ -25,7 +25,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/teacher", teacherRoutes);
 
-app.get("/", (req, res) => res.send("API funcionando correctamente ✔"));
+app.get("/", (req, res) => res.send("API funcionando correctamente"));
 
 app.use((err, req, res, next) => {
   console.error("🔥 Error en el servidor:", err);
@@ -33,5 +33,5 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 5000;
-const HOST = process.env.HOST || "127.0.0.1";
+const HOST = process.env.HOST || "0.0.0.0";
 app.listen(PORT, HOST, () => console.log(`🚀 Servidor corriendo en ${HOST}:${PORT}`));
