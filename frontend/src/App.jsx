@@ -18,6 +18,11 @@ const ConfirmacionPago = lazy(() => import("./pages/ConfirmacionPago"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const TeacherDashboard = lazy(() => import("./pages/TeacherDashboard"));
 const Orders = lazy(() => import("./pages/Orders"));
+const Contact = lazy(() => import("./pages/Contact"));
+const Privacidad = lazy(() => import("./pages/Privacidad"));
+const Terminos = lazy(() => import("./pages/Terminos"));
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 
 export default function App() {
   return (
@@ -37,6 +42,11 @@ export default function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/carrito" element={<Carrito />} />
+            <Route path="/contacto" element={<Contact />} />
+            <Route path="/privacidad" element={<Privacidad />} />
+            <Route path="/terminos" element={<Terminos />} />
+            <Route path="/recuperar" element={<ForgotPassword />} />
+            <Route path="/restablecer" element={<ResetPassword />} />
             <Route
               path="/checkout"
               element={

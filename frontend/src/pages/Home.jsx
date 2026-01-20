@@ -7,7 +7,7 @@ const MENSUALIDAD = {
   id: 1,
   name: 'Mensualidad Colegio Ateneo',
   price: 120000,
-  image: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=1200&q=80',
+  image: '/mensualidad.png',
   description: 'Pago de la mensualidad escolar. Incluye acceso a plataforma y servicios educativos.'
 }
 
@@ -20,7 +20,7 @@ export default function Home() {
   const { add } = useContext(CartContext)
   const { user, loading } = useContext(AuthContext)
   const navigate = useNavigate()
-  const [selectedMonth, setSelectedMonth] = useState(MESES[new Date().getMonth()])
+  const [selectedMonths, setSelectedMonths] = useState([MESES[new Date().getMonth()]])
   const [quantity, setQuantity] = useState(1)
   const [showServices, setShowServices] = useState(false)
   const [showLoginPrompt, setShowLoginPrompt] = useState(false)
@@ -32,10 +32,39 @@ export default function Home() {
     }
   }, [loading, user])
 
+  // Actualizar selectedMonths cuando cambia quantity
+  useEffect(() => {
+    setSelectedMonths(prev => {
+      if (prev.length === quantity) return prev
+      
+      if (quantity > prev.length) {
+        // Agregar meses consecutivos
+        const newMonths = [...prev]
+        let lastMonth = prev[prev.length - 1]
+        let lastIndex = MESES.indexOf(lastMonth)
+        
+        for (let i = prev.length; i < quantity; i++) {
+          lastIndex = (lastIndex + 1) % 12
+          newMonths.push(MESES[lastIndex])
+        }
+        return newMonths
+      } else {
+        // Recortar
+        return prev.slice(0, quantity)
+      }
+    })
+  }, [quantity])
+
+  const handleMonthChange = (index, value) => {
+    const newMonths = [...selectedMonths]
+    newMonths[index] = value
+    setSelectedMonths(newMonths)
+  }
+
   const handlePay = () => {
-    for (let i = 0; i < quantity; i++) {
-      add({ ...MENSUALIDAD, metadata: { month: selectedMonth } })
-    }
+    selectedMonths.forEach(month => {
+      add({ ...MENSUALIDAD, metadata: { month } })
+    })
     // Redirigimos al checkout para completar datos del estudiante
     navigate('/checkout')
   }
@@ -89,19 +118,29 @@ export default function Home() {
                     </div>
                   </div>
 
-                  <img src={MENSUALIDAD.image} alt="Mensualidad" style={{ width: '100%', borderRadius: 10, marginTop: 12 }} />
+                  <img src={MENSUALIDAD.image} alt="Mensualidad" style={{ display: 'block', margin: '12px auto', maxWidth: '180px', borderRadius: 10 }} />
 
                   <div style={{ display: 'flex', gap: 12, marginTop: 12, flexWrap: 'wrap' }}>
                     <div style={{ minWidth: 180, flex: 1 }}>
-                      <label>Mes a pagar</label>
-                      <select className="input" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)}>
-                        {MESES.map((m) => (
-                          <option key={m} value={m}>{m}</option>
+                      <label>Meses a pagar</label>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {selectedMonths.map((month, idx) => (
+                          <select 
+                            key={idx}
+                            className="input" 
+                            value={month} 
+                            onChange={(e) => handleMonthChange(idx, e.target.value)}
+                          >
+                            {MESES.map((m) => {
+                              const isSelectedElsewhere = selectedMonths.some((sm, sIdx) => sm === m && sIdx !== idx);
+                              return <option key={m} value={m} disabled={isSelectedElsewhere}>{m}</option>
+                            })}
+                          </select>
                         ))}
-                      </select>
+                      </div>
                     </div>
                     <div style={{ width: 140 }}>
-                      <label>Cantidad de meses</label>
+                      <label>Cantidad</label>
                       <input className="input" type="number" min="1" value={quantity} onChange={(e) => setQuantity(Math.max(1, Number(e.target.value)))} />
                     </div>
                   </div>
@@ -184,19 +223,29 @@ export default function Home() {
               </div>
             </div>
 
-            <img src={MENSUALIDAD.image} alt="Mensualidad" style={{ width: '100%', borderRadius: 10, marginTop: 12 }} />
+            <img src={MENSUALIDAD.image} alt="Mensualidad" style={{ display: 'block', margin: '12px auto', maxWidth: '180px', borderRadius: 10 }} />
 
             <div style={{ display: 'flex', gap: 12, marginTop: 12, flexWrap: 'wrap' }}>
               <div style={{ minWidth: 180, flex: 1 }}>
-                <label>Mes a pagar</label>
-                <select className="input" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)}>
-                  {MESES.map((m) => (
-                    <option key={m} value={m}>{m}</option>
+                <label>Meses a pagar</label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {selectedMonths.map((month, idx) => (
+                    <select 
+                      key={idx}
+                      className="input" 
+                      value={month} 
+                      onChange={(e) => handleMonthChange(idx, e.target.value)}
+                    >
+                      {MESES.map((m) => {
+                        const isSelectedElsewhere = selectedMonths.some((sm, sIdx) => sm === m && sIdx !== idx);
+                        return <option key={m} value={m} disabled={isSelectedElsewhere}>{m}</option>
+                      })}
+                    </select>
                   ))}
-                </select>
+                </div>
               </div>
               <div style={{ width: 140 }}>
-                <label>Cantidad de meses</label>
+                <label>Cantidad</label>
                 <input className="input" type="number" min="1" value={quantity} onChange={(e) => setQuantity(Math.max(1, Number(e.target.value)))} />
               </div>
             </div>

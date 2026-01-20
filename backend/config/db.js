@@ -81,6 +81,16 @@ const connectDB = async () => {
         CONSTRAINT fk_payments_order FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
       );
       CREATE INDEX IF NOT EXISTS idx_payments_order_id ON payments(order_id);
+      CREATE TABLE IF NOT EXISTS password_resets (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL,
+        token VARCHAR(200) UNIQUE NOT NULL,
+        expires_at TIMESTAMPTZ NOT NULL,
+        used BOOLEAN NOT NULL DEFAULT FALSE,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        CONSTRAINT fk_password_resets_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      );
+      CREATE INDEX IF NOT EXISTS idx_password_resets_token ON password_resets(token);
     `);
     console.log("PostgreSQL conectado y tablas verificadas");
   } catch (error) {

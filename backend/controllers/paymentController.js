@@ -1,9 +1,6 @@
 import { MercadoPagoConfig, Preference, Payment } from 'mercadopago';
-import { createOrder, addOrderItems, findOrderByReference, listOrdersByUser, listOrderItems, updateOrderStatus } from '../models/Order.js';
+import { createOrder, addOrderItems, findOrderByReference, listOrdersByUser, listOrderItems, updateOrderStatus, listAllOrders } from '../models/Order.js';
 import { createPayment, listPaymentsByOrder, findPaymentByMpId, updatePaymentStatus } from '../models/Payment.js';
-import dotenv from 'dotenv';
-
-dotenv.config();
 
 // Mercado Pago SDK config
 const mpAccessToken = process.env.MP_ACCESS_TOKEN || '';
@@ -22,9 +19,7 @@ if (mpEnabled) {
 }
 
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:5000';
-
-const orders = new Map();
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:5001';
 
 function generateReference() {
   return 'ATENEO-' + Date.now();
@@ -293,6 +288,20 @@ export const retryCheckout = async (req, res) => {
     });
   } catch (e) {
     console.error('retry error:', e);
+    res.status(500).json({ error: 'internal_error' });
+  }
+};
+
+export const getAllOrdersAdmin = async (req, res) => {
+  try {
+    // Verificar rol admin/profesor (middleware auth ya verifica token)
+    if (req.user.role !== 'admin' && req.user.role !== 'teacher') {
+      return res.status(403).json({ error: 'forbidden' });
+    }
+    const orders = await listAllOrders();
+    res.json(orders);
+  } catch (e) {
+    console.error('Error fetching all orders:', e);
     res.status(500).json({ error: 'internal_error' });
   }
 };

@@ -57,3 +57,15 @@ export const updateOrderStatus = async ({ id, status }) => {
   );
   return rows[0];
 };
+
+export const listAllOrders = async () => {
+  const pool = getPool();
+  if (!pool) throw new Error("DB_NOT_CONFIGURED");
+  const { rows } = await pool.query(
+    `SELECT o.id, o.external_reference, o.amount, o.status, o.created_at, o.method, u.name as user_name, u.email as user_email
+     FROM orders o
+     LEFT JOIN users u ON o.user_id = u.id
+     ORDER BY o.created_at DESC`
+  );
+  return rows;
+};

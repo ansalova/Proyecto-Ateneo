@@ -53,6 +53,9 @@ export default function Login() {
 
         <button className="button" type="submit">Entrar</button>
       </form>
+      <div style={{ marginTop: 12 }}>
+        <a href="/recuperar">Olvidé mi contraseña</a>
+      </div>
     </div>
   );
 }

@@ -31,11 +31,7 @@ export async function processPayment({ amount, metadata, method = 'tarjeta' }) {
 
     return { success: false, message: 'Respuesta desconocida del servidor' }
   } catch (e) {
-    console.warn('Fallo al iniciar checkout real, usando simulación:', e?.message)
-
-    // Simulación como fallback
-    await new Promise(r => setTimeout(r, 800))
-    const tx = 'ATENEO-' + Date.now()
-    return { success: true, transactionId: tx, simulated: true }
+    console.error('Fallo al iniciar checkout real:', e?.message)
+    throw e
   }
 }
