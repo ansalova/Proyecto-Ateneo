@@ -1,1 +1,0 @@
-import{r,A as e,j as s}from"./index-s_y12_O5.js";function o(){const{user:n}=r.useContext(e);return s.jsxs("div",{children:[s.jsx("h1",{children:"Panel administrativo"}),s.jsxs("p",{children:["Bienvenido, ",n==null?void 0:n.name]}),s.jsx("p",{children:"Aquí podrás gestionar productos, órdenes y usuarios (funcionalidad por implementar)."})]})}export{o as default};
