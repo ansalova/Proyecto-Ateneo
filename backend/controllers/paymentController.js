@@ -18,8 +18,8 @@ if (mpEnabled) {
   console.warn('[MP] MP_ACCESS_TOKEN no configurado. Mercado Pago deshabilitado.');
 }
 
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:5001';
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://127.0.0.1:5173';
+const BACKEND_URL = process.env.BACKEND_URL || 'http://127.0.0.1:5000';
 
 function generateReference() {
   return 'ATENEO-' + Date.now();
