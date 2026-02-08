@@ -13,14 +13,20 @@ export default function Checkout() {
   const [parentEmail, setParentEmail] = useState('')
   const [phone, setPhone] = useState('')
   const [loading, setLoading] = useState(false)
+  const [errorMsg, setErrorMsg] = useState('')
 
   const goToPaymentMethods = async () => {
-    if (!items.length) return alert('El carrito está vacío')
+    if (!items.length) {
+      setErrorMsg('El carrito está vacío')
+      return
+    }
     if (!studentName || !studentId || !grade || !parentEmail) {
-      return alert('Por favor completa los datos del estudiante (nombre, identificación, grado y correo).')
+      setErrorMsg('Por favor completa los datos del estudiante (nombre, identificación, grado y correo).')
+      return
     }
 
     setLoading(true)
+    setErrorMsg('')
 
     // Preparamos metadata que irá al backend / pasarela
     const metadata = {
@@ -46,6 +52,11 @@ export default function Checkout() {
         <p>No hay mensualidades en el carrito</p>
       ) : (
         <>
+          {errorMsg && (
+            <div className="card" style={{ background: '#fff5f5', border: '1px solid #fecaca', color: '#b91c1c', marginBottom: 12 }}>
+              {errorMsg}
+            </div>
+          )}
           <div style={{ marginBottom: 12 }}>
             {items.map(i => (
               <div key={i.id} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>

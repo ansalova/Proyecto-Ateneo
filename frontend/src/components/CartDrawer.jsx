@@ -2,6 +2,7 @@ import React, { useContext } from 'react'
 import { CartContext } from '../context/CartContext'
 import { useCartUI } from '../context/CartUIContext'
 import { useNavigate } from 'react-router-dom'
+import { X } from 'lucide-react'
 
 export default function CartDrawer() {
   const { items, remove, total, clear } = useContext(CartContext)
@@ -30,7 +31,9 @@ export default function CartDrawer() {
       <div className="card">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <h4>Carrito</h4>
-          <button onClick={closeCart} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 18 }}>Cerrar</button>
+          <button onClick={closeCart} style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+            <X size={20} />
+          </button>
         </div>
 
         {items.length === 0 && <p>Sin productos</p>}

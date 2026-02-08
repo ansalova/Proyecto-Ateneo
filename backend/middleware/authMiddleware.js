@@ -15,16 +15,14 @@ export const protect = async (req, res, next) => {
       const dbUser = await findById(decoded.id);
       if (!dbUser) return res.status(401).json({ msg: "No autorizado, usuario no encontrado" });
       req.user = dbUser;
-      next();
+      return next();
     } catch (error) {
       console.error(error);
-      res.status(401).json({ msg: "No autorizado, token fallido" });
+      return res.status(401).json({ msg: "No autorizado, token fallido" });
     }
   }
 
-  if (!token) {
-    res.status(401).json({ msg: "No autorizado, no hay token" });
-  }
+  return res.status(401).json({ msg: "No autorizado, no hay token" });
 };
 
 export const authorize = (...roles) => {

@@ -15,6 +15,25 @@ export function AuthProvider({ children }) {
         API.defaults.headers.common["Authorization"] = `Bearer ${token}`;
     }
     setLoading(false);
+
+    const interceptorId = API.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        const status = error?.response?.status;
+        if (status === 401) {
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          delete API.defaults.headers.common["Authorization"];
+          setUser(null);
+          window.location.href = "/login";
+        }
+        return Promise.reject(error);
+      }
+    );
+
+    return () => {
+      API.interceptors.response.eject(interceptorId);
+    };
   }, []);
 
   const login = async ({ email, password }) => {
@@ -31,9 +50,9 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const register = async ({ name, email, password, role }) => {
+  const register = async ({ name, email, password, role, inviteCode }) => {
     try {
-      const { data } = await API.post("/api/auth/register", { name, email, password, role });
+      const { data } = await API.post("/api/auth/register", { name, email, password, role, inviteCode });
       return { success: true };
     } catch (err) {
       return { success: false, message: err.response?.data?.msg || "No se pudo conectar al servidor." };

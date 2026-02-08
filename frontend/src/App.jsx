@@ -1,28 +1,23 @@
 // src/App.jsx
-import React, { Suspense, lazy } from "react";
+import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import CartDrawer from "./components/CartDrawer";
+import Home from "./pages/Home";
+import Login from "./pages/Login";
+import Register from "./pages/Register";   // ← asegúrate de tener esta página
+import Carrito from "./pages/Carrito";
+import Checkout from "./pages/Checkout";
+import PaymentMethodsPage from "./pages/PaymentMethodsPage";
+import ConfirmacionPago from "./pages/ConfirmacionPago";
+import Dashboard from "./pages/Dashboard";
+import TeacherDashboard from "./pages/TeacherDashboard";
+import StudentProfile from "./pages/StudentProfile";
+import StudentGrades from "./pages/StudentGrades";
 import ProtectedRoute from "./components/ProtectedRoute";
 import TeacherRoute from "./components/TeacherRoute";
-
-const Home = lazy(() => import("./pages/Home"));
-const Login = lazy(() => import("./pages/Login"));
-const Register = lazy(() => import("./pages/Register"));
-const Carrito = lazy(() => import("./pages/Carrito"));
-const Checkout = lazy(() => import("./pages/Checkout"));
-const PaymentMethodsPage = lazy(() => import("./pages/PaymentMethodsPage"));
-const ConfirmacionPago = lazy(() => import("./pages/ConfirmacionPago"));
-const Dashboard = lazy(() => import("./pages/Dashboard"));
-const TeacherDashboard = lazy(() => import("./pages/TeacherDashboard"));
-const Orders = lazy(() => import("./pages/Orders"));
-const Contact = lazy(() => import("./pages/Contact"));
-const Privacidad = lazy(() => import("./pages/Privacidad"));
-const Terminos = lazy(() => import("./pages/Terminos"));
-const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
-const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 
 export default function App() {
   return (
@@ -36,63 +31,73 @@ export default function App() {
 
       {/* CONTENIDO PRINCIPAL */}
       <main className="container" style={{ paddingTop: 20 }}>
-        <Suspense fallback={<div>Cargando...</div>}>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/carrito" element={<Carrito />} />
-            <Route path="/contacto" element={<Contact />} />
-            <Route path="/privacidad" element={<Privacidad />} />
-            <Route path="/terminos" element={<Terminos />} />
-            <Route path="/recuperar" element={<ForgotPassword />} />
-            <Route path="/restablecer" element={<ResetPassword />} />
-            <Route
-              path="/checkout"
-              element={
-                <ProtectedRoute>
-                  <Checkout />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/pago"
-              element={
-                <ProtectedRoute>
-                  <PaymentMethodsPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/confirmacion-pago"
-              element={
-                <ProtectedRoute>
-                  <ConfirmacionPago />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/ordenes"
-              element={
-                <ProtectedRoute>
-                  <Orders />
-                </ProtectedRoute>
-              }
-            />
-            <Route element={<TeacherRoute />}>
-              <Route path="/profesor" element={<TeacherDashboard />} />
-            </Route>
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </Suspense>
+        <Routes>
+          {/* Página principal */}
+          <Route path="/" element={<Home />} />
+
+          {/* Autenticación */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+
+          {/* Carrito */}
+          <Route path="/carrito" element={<Carrito />} />
+
+          <Route
+            path="/mis-notas"
+            element={
+              <ProtectedRoute>
+                <StudentGrades />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Checkout protegido */}
+          <Route
+            path="/checkout"
+            element={
+              <ProtectedRoute>
+                <Checkout />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/pago"
+            element={
+              <ProtectedRoute>
+                <PaymentMethodsPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/confirmacion-pago"
+            element={
+              <ProtectedRoute>
+                <ConfirmacionPago />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Dashboard protegido */}
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Panel Profesor */}
+          <Route path="/profesor" element={<TeacherRoute />}>
+            <Route index element={<TeacherDashboard />} />
+            <Route path="estudiantes/:id" element={<StudentProfile />} />
+          </Route>
+
+          {/* Cualquier ruta incorrecta → redirige al inicio */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
       </main>
 
       {/* FOOTER */}

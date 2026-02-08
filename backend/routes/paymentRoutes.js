@@ -1,16 +1,11 @@
 import express from 'express';
-import { createCheckout, receiveWebhook, receiveWebhookGet, getOrder, listOrders, getOrderDetails, retryCheckout, getAllOrdersAdmin } from '../controllers/paymentController.js';
-import { protect } from '../middleware/authMiddleware.js';
+import { createCheckout, receiveWebhook, receiveWebhookGet, getOrder } from '../controllers/paymentController.js';
 
 const router = express.Router();
 
-router.post('/checkout', protect, createCheckout);
+router.post('/checkout', createCheckout);
 router.post('/webhook/mercadopago', receiveWebhook);
 router.get('/webhook/mercadopago', receiveWebhookGet);
-router.get('/orders', protect, listOrders);
-router.get('/admin/orders', protect, getAllOrdersAdmin);
-router.get('/orders/:reference', protect, getOrder);
-router.get('/orders/:reference/details', protect, getOrderDetails);
-router.post('/orders/:reference/retry', protect, retryCheckout);
+router.get('/orders/:reference', getOrder);
 
 export default router;

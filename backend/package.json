@@ -6,9 +6,7 @@
   "main": "server.js",
   "scripts": {
     "dev": "nodemon server.js",
-    "start": "node server.js",
-    "lint": "eslint . --ext .js",
-    "typecheck": "tsc --noEmit"
+    "start": "node server.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -23,7 +21,6 @@
     "pg": "^8.16.3"
   },
   "devDependencies": {
-    "eslint": "^9.39.2",
     "nodemon": "^3.1.7",
     "typescript": "^5.9.3"
   }

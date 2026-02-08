@@ -1,71 +1,36 @@
 import { getPool } from "../config/db.js";
 
-export const createOrder = async ({ external_reference, user_id, amount, method, status, metadata }) => {
+export const createOrder = async ({ external_reference, method, amount, metadata }) => {
   const pool = getPool();
   if (!pool) throw new Error("DB_NOT_CONFIGURED");
+
   const { rows } = await pool.query(
-    "INSERT INTO orders (external_reference, user_id, amount, method, status, metadata) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *",
-    [external_reference, user_id || null, amount, method, status || "pending", metadata ? JSON.stringify(metadata) : null]
+    `INSERT INTO orders (external_reference, method, amount, metadata, status)
+     VALUES ($1, $2, $3, $4, 'pending')
+     RETURNING *`,
+    [external_reference, method, amount, metadata]
   );
   return rows[0];
-};
-
-export const addOrderItems = async (orderId, items = []) => {
-  const pool = getPool();
-  if (!pool) throw new Error("DB_NOT_CONFIGURED");
-  for (const i of items) {
-    await pool.query(
-      "INSERT INTO order_items (order_id, item_id, title, qty, unit_price, metadata) VALUES ($1, $2, $3, $4, $5, $6)",
-      [orderId, String(i.id ?? "mensualidad"), String(i.title ?? i.name ?? "Mensualidad Ateneo"), Number(i.quantity ?? i.qty ?? 1), Number(i.unit_price ?? i.price ?? 0), i.metadata ? JSON.stringify(i.metadata) : null]
-    );
-  }
 };
 
 export const findOrderByReference = async (external_reference) => {
   const pool = getPool();
   if (!pool) throw new Error("DB_NOT_CONFIGURED");
-  const { rows } = await pool.query("SELECT * FROM orders WHERE external_reference = $1 LIMIT 1", [external_reference]);
-  return rows[0] || null;
-};
 
-export const listOrdersByUser = async (user_id) => {
-  const pool = getPool();
-  if (!pool) throw new Error("DB_NOT_CONFIGURED");
   const { rows } = await pool.query(
-    "SELECT * FROM orders WHERE user_id = $1 ORDER BY created_at DESC",
-    [user_id]
-  );
-  return rows;
-};
-
-export const listOrderItems = async (order_id) => {
-  const pool = getPool();
-  if (!pool) throw new Error("DB_NOT_CONFIGURED");
-  const { rows } = await pool.query(
-    "SELECT id, order_id, item_id, title, qty, unit_price, metadata, created_at FROM order_items WHERE order_id = $1 ORDER BY id ASC",
-    [order_id]
-  );
-  return rows;
-};
-
-export const updateOrderStatus = async ({ id, status }) => {
-  const pool = getPool();
-  if (!pool) throw new Error("DB_NOT_CONFIGURED");
-  const { rows } = await pool.query(
-    "UPDATE orders SET status = $2, updated_at = NOW() WHERE id = $1 RETURNING *",
-    [id, status]
+    `SELECT * FROM orders WHERE external_reference = $1 LIMIT 1`,
+    [external_reference]
   );
   return rows[0];
 };
 
-export const listAllOrders = async () => {
+export const updateOrderStatus = async (external_reference, status) => {
   const pool = getPool();
   if (!pool) throw new Error("DB_NOT_CONFIGURED");
+
   const { rows } = await pool.query(
-    `SELECT o.id, o.external_reference, o.amount, o.status, o.created_at, o.method, u.name as user_name, u.email as user_email
-     FROM orders o
-     LEFT JOIN users u ON o.user_id = u.id
-     ORDER BY o.created_at DESC`
+    `UPDATE orders SET status = $1, updated_at = NOW() WHERE external_reference = $2 RETURNING *`,
+    [status, external_reference]
   );
-  return rows;
+  return rows[0];
 };

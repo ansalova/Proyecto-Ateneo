@@ -6,6 +6,7 @@ import connectDB from "./config/db.js";
 import authRoutes from "./routes/authRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
 import teacherRoutes from "./routes/teacherRoutes.js";
+import studentRoutes from "./routes/studentRoutes.js";
 
 dotenv.config();
 connectDB();
@@ -13,19 +14,21 @@ connectDB();
 const app = express();
 
 app.use(cors({
-  origin: ["http://localhost:5173", "http://127.0.0.1:5173"],
+  origin: ["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:5174", "http://localhost:5175"],
   credentials: true,
   methods: "GET,POST,PUT,DELETE"
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true })); // Para webhooks
 app.use(morgan("dev"));
+app.set("etag", false);
 
 app.use("/api/auth", authRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/teacher", teacherRoutes);
+app.use("/api/student", studentRoutes);
 
-app.get("/", (req, res) => res.send("API funcionando correctamente"));
+app.get("/", (req, res) => res.send("API funcionando correctamente ✔"));
 
 app.use((err, req, res, next) => {
   console.error("🔥 Error en el servidor:", err);
@@ -33,5 +36,4 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 5000;
-const HOST = process.env.HOST || "0.0.0.0";
-app.listen(PORT, HOST, () => console.log(`🚀 Servidor corriendo en ${HOST}:${PORT}`));
+app.listen(PORT, () => console.log(`🚀 Servidor corriendo en puerto ${PORT}`));

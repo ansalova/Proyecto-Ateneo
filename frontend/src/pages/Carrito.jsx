@@ -1,6 +1,7 @@
 import React, { useContext } from 'react'
 import { CartContext } from '../context/CartContext'
 import { useNavigate } from 'react-router-dom'
+import { ShoppingCart, Trash2, Plus, Minus } from 'lucide-react'
 
 export default function Carrito() {
   const { items, remove, updateQty, clear, total } = useContext(CartContext)
@@ -10,6 +11,9 @@ export default function Carrito() {
     return (
       <div className="container" style={{ textAlign: 'center', marginTop: '4rem' }}>
         <div className="card" style={{ maxWidth: 500, margin: '0 auto', padding: '3rem' }}>
+          <div style={{ marginBottom: '1rem', color: '#cbd5e1', display: 'flex', justifyContent: 'center' }}>
+            <ShoppingCart size={64} />
+          </div>
           <h2>Tu carrito está vacío</h2>
           <p style={{ color: '#64748b', marginBottom: '2rem' }}>
             Parece que aún no has agregado servicios a tu carrito.
@@ -31,12 +35,6 @@ export default function Carrito() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           {items.map(item => (
             <div key={item.id} className="card" style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', padding: '1rem' }}>
-              <img 
-                src={item.image} 
-                alt={item.name} 
-                style={{ width: 100, height: 100, objectFit: 'cover', borderRadius: 8 }} 
-              />
-              
               <div style={{ flex: 1 }}>
                 <h3 style={{ margin: '0 0 0.5rem 0' }}>{item.name}</h3>
                 <p style={{ margin: 0, color: '#64748b' }}>
@@ -51,27 +49,27 @@ export default function Carrito() {
                 <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #e2e8f0', borderRadius: 8 }}>
                   <button 
                     onClick={() => updateQty(item.id, item.qty - 1)}
-                    style={{ background: 'none', border: 'none', padding: '0.5rem 1rem', cursor: 'pointer', fontSize: '1.2rem' }}
+                    style={{ background: 'none', border: 'none', padding: '0.5rem 1rem', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
                     disabled={item.qty <= 1}
                   >
-                    -
+                    <Minus size={16} />
                   </button>
                   <span style={{ padding: '0 0.5rem', fontWeight: 600 }}>{item.qty}</span>
                   <button 
                     onClick={() => updateQty(item.id, item.qty + 1)}
-                    style={{ background: 'none', border: 'none', padding: '0.5rem 1rem', cursor: 'pointer', fontSize: '1.2rem' }}
+                    style={{ background: 'none', border: 'none', padding: '0.5rem 1rem', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
                   >
-                    +
+                    <Plus size={16} />
                   </button>
                 </div>
 
                 <button 
                   onClick={() => remove(item.id)}
                   className="button button--danger"
-                  style={{ padding: '0.5rem', borderRadius: 8 }}
+                  style={{ padding: '0.5rem', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                   title="Eliminar"
                 >
-                  Eliminar
+                  <Trash2 size={18} />
                 </button>
               </div>
             </div>

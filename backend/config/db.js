@@ -1,6 +1,38 @@
-import { Pool } from "pg";
+import { Pool, Client } from "pg";
 
 let pool = null;
+
+// Función para crear la BD si no existe
+const ensureDbExists = async (connectionString) => {
+  try {
+    // Parsear la URL para extraer datos y conectar a la BD 'postgres' por defecto
+    const url = new URL(connectionString);
+    const dbName = url.pathname.split('/')[1]; // 'ateneo'
+    
+    // Conectamos a 'postgres' para verificar existencia de 'ateneo'
+    url.pathname = '/postgres'; 
+    
+    const client = new Client({
+      connectionString: url.toString(),
+      ssl: process.env.PG_SSL === "true" ? { rejectUnauthorized: false } : undefined,
+    });
+
+    await client.connect();
+    
+    const res = await client.query(`SELECT 1 FROM pg_database WHERE datname = $1`, [dbName]);
+    if (res.rowCount === 0) {
+      console.log(`Base de datos '${dbName}' no existe. Creándola...`);
+      await client.query(`CREATE DATABASE "${dbName}"`);
+      console.log(`Base de datos '${dbName}' creada exitosamente.`);
+    } else {
+      console.log(`Base de datos '${dbName}' ya existe.`);
+    }
+    
+    await client.end();
+  } catch (err) {
+    console.error("Error verificando base de datos inicial (puede ignorarse si la BD ya existe y la conexión es directa):", err.message);
+  }
+};
 
 export const getPool = () => {
   if (pool) return pool;
@@ -27,6 +59,15 @@ export const getPool = () => {
 
 const connectDB = async () => {
   try {
+    const connectionString =
+      process.env.DATABASE_URL ||
+      process.env.POSTGRES_URL ||
+      process.env.PG_CONNECTION_STRING;
+
+    if (connectionString) {
+      await ensureDbExists(connectionString);
+    }
+
     const p = getPool();
     if (!p) {
       console.warn("Pool de Postgres no inicializado");
@@ -42,55 +83,45 @@ const connectDB = async () => {
         created_at TIMESTAMP DEFAULT NOW(),
         updated_at TIMESTAMP DEFAULT NOW()
       );
+    `);
+
+    await p.query(`
       CREATE TABLE IF NOT EXISTS orders (
         id SERIAL PRIMARY KEY,
-        external_reference VARCHAR(120) UNIQUE NOT NULL,
-        user_id INTEGER,
-        amount INTEGER NOT NULL,
-        method VARCHAR(40) NOT NULL,
-        status VARCHAR(40) NOT NULL DEFAULT 'pending',
+        external_reference VARCHAR(100) UNIQUE NOT NULL,
+        status VARCHAR(50) NOT NULL DEFAULT 'pending',
+        method VARCHAR(50) NOT NULL,
+        amount DECIMAL(10, 2) NOT NULL,
         metadata JSONB,
-        created_at TIMESTAMPTZ DEFAULT NOW(),
-        updated_at TIMESTAMPTZ DEFAULT NOW(),
-        CONSTRAINT fk_orders_user FOREIGN KEY (user_id) REFERENCES users(id)
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
       );
-      CREATE INDEX IF NOT EXISTS idx_orders_external_reference ON orders(external_reference);
-      CREATE INDEX IF NOT EXISTS idx_orders_user_id ON orders(user_id);
-      CREATE TABLE IF NOT EXISTS order_items (
+    `);
+    await p.query(`
+      CREATE TABLE IF NOT EXISTS grades (
         id SERIAL PRIMARY KEY,
-        order_id INTEGER NOT NULL,
-        item_id VARCHAR(80),
-        title VARCHAR(200) NOT NULL,
-        qty INTEGER NOT NULL DEFAULT 1,
-        unit_price INTEGER NOT NULL,
-        metadata JSONB,
-        created_at TIMESTAMPTZ DEFAULT NOW(),
-        CONSTRAINT fk_items_order FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
+        student_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        subject VARCHAR(120),
+        grade DECIMAL(3, 1),
+        updated_at TIMESTAMP DEFAULT NOW()
       );
-      CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items(order_id);
-      CREATE TABLE IF NOT EXISTS payments (
+    `);
+    await p.query(`ALTER TABLE grades DROP CONSTRAINT IF EXISTS grades_student_id_key;`);
+    await p.query(`ALTER TABLE grades ADD COLUMN IF NOT EXISTS period VARCHAR(20);`);
+    await p.query(`ALTER TABLE grades ADD COLUMN IF NOT EXISTS updated_by INTEGER REFERENCES users(id);`);
+    await p.query(`ALTER TABLE grades DROP CONSTRAINT IF EXISTS grades_student_subject_period_unique;`);
+    await p.query(`ALTER TABLE grades ADD CONSTRAINT grades_student_subject_period_unique UNIQUE (student_id, subject, period);`);
+    await p.query(`
+      CREATE TABLE IF NOT EXISTS grade_history (
         id SERIAL PRIMARY KEY,
-        order_id INTEGER NOT NULL,
-        provider VARCHAR(80) NOT NULL,
-        preference_id VARCHAR(120),
-        mp_payment_id VARCHAR(120),
-        status VARCHAR(40) NOT NULL DEFAULT 'initiated',
-        raw_response JSONB,
-        created_at TIMESTAMPTZ DEFAULT NOW(),
-        updated_at TIMESTAMPTZ DEFAULT NOW(),
-        CONSTRAINT fk_payments_order FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
+        student_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        subject VARCHAR(120) NOT NULL,
+        period VARCHAR(20) NOT NULL,
+        old_grade DECIMAL(3,1),
+        new_grade DECIMAL(3,1) NOT NULL,
+        changed_by INTEGER REFERENCES users(id),
+        changed_at TIMESTAMP DEFAULT NOW()
       );
-      CREATE INDEX IF NOT EXISTS idx_payments_order_id ON payments(order_id);
-      CREATE TABLE IF NOT EXISTS password_resets (
-        id SERIAL PRIMARY KEY,
-        user_id INTEGER NOT NULL,
-        token VARCHAR(200) UNIQUE NOT NULL,
-        expires_at TIMESTAMPTZ NOT NULL,
-        used BOOLEAN NOT NULL DEFAULT FALSE,
-        created_at TIMESTAMPTZ DEFAULT NOW(),
-        CONSTRAINT fk_password_resets_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-      );
-      CREATE INDEX IF NOT EXISTS idx_password_resets_token ON password_resets(token);
     `);
     console.log("PostgreSQL conectado y tablas verificadas");
   } catch (error) {

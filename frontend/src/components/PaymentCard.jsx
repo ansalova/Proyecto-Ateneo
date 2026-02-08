@@ -1,14 +1,7 @@
-export default function PaymentCard({ title, description, onClick, disabled }) {
+export default function PaymentCard({ title, description, icon, onClick }) {
   return (
-    <div 
-      className={`payment-card ${disabled ? 'disabled' : ''}`} 
-      onClick={!disabled ? onClick : undefined}
-      style={{ 
-        opacity: disabled ? 0.6 : 1, 
-        cursor: disabled ? 'not-allowed' : 'pointer',
-        pointerEvents: disabled ? 'none' : 'auto'
-      }}
-    >
+    <div className="payment-card" onClick={onClick}>
+      <div className="icon">{icon}</div>
       <h3>{title}</h3>
       <p>{description}</p>
     </div>

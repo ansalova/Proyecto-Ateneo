@@ -2,6 +2,7 @@ import React, { useContext, useState, useEffect } from 'react'
 import { CartContext } from '../context/CartContext'
 import { AuthContext } from '../context/AuthContext'
 import { useNavigate, Link } from "react-router-dom"
+import { School, BookOpen, ChevronsRight, Calendar, GraduationCap, CreditCard } from 'lucide-react'
 
 const MENSUALIDAD = {
   id: 1,
@@ -20,7 +21,7 @@ export default function Home() {
   const { add } = useContext(CartContext)
   const { user, loading } = useContext(AuthContext)
   const navigate = useNavigate()
-  const [selectedMonths, setSelectedMonths] = useState([MESES[new Date().getMonth()]])
+  const [selectedMonth, setSelectedMonth] = useState(MESES[new Date().getMonth()])
   const [quantity, setQuantity] = useState(1)
   const [showServices, setShowServices] = useState(false)
   const [showLoginPrompt, setShowLoginPrompt] = useState(false)
@@ -32,39 +33,10 @@ export default function Home() {
     }
   }, [loading, user])
 
-  // Actualizar selectedMonths cuando cambia quantity
-  useEffect(() => {
-    setSelectedMonths(prev => {
-      if (prev.length === quantity) return prev
-      
-      if (quantity > prev.length) {
-        // Agregar meses consecutivos
-        const newMonths = [...prev]
-        let lastMonth = prev[prev.length - 1]
-        let lastIndex = MESES.indexOf(lastMonth)
-        
-        for (let i = prev.length; i < quantity; i++) {
-          lastIndex = (lastIndex + 1) % 12
-          newMonths.push(MESES[lastIndex])
-        }
-        return newMonths
-      } else {
-        // Recortar
-        return prev.slice(0, quantity)
-      }
-    })
-  }, [quantity])
-
-  const handleMonthChange = (index, value) => {
-    const newMonths = [...selectedMonths]
-    newMonths[index] = value
-    setSelectedMonths(newMonths)
-  }
-
   const handlePay = () => {
-    selectedMonths.forEach(month => {
-      add({ ...MENSUALIDAD, metadata: { month } })
-    })
+    for (let i = 0; i < quantity; i++) {
+      add({ ...MENSUALIDAD, metadata: { month: selectedMonth } })
+    }
     // Redirigimos al checkout para completar datos del estudiante
     navigate('/checkout')
   }
@@ -75,7 +47,9 @@ export default function Home() {
       <section className="card" style={{ padding: '2rem', marginBottom: 20, background: 'linear-gradient(180deg, #e8fff3, #ffffff)' }}>
         <div className="hero-grid">
           <div>
-            <div className="badge" style={{ marginBottom: 8 }}>Colegio Ateneo</div>
+            <div className="badge" style={{ marginBottom: 8, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <School size={16} /> Colegio Ateneo
+            </div>
             <h1 style={{ margin: 0, fontSize: '2rem' }}>Formación integral con excelencia académica</h1>
             <p style={{ color: '#64748b', marginTop: 8 }}>
               Bienvenido al portal del Colegio Ateneo. Aquí encontrarás información general del colegio y podrás realizar el pago de la mensualidad de forma segura y rápida.
@@ -84,17 +58,10 @@ export default function Home() {
               <button className="button" onClick={() => setShowServices(true)}>Ver servicios</button>
               {user && (user.role === 'teacher' || user.role === 'admin') && (
                 <button className="button button-outline" onClick={() => navigate('/profesor')}>
-                  Panel Profesor
+                  Panel de profesores
                 </button>
               )}
             </div>
-          </div>
-          <div className="hero-image">
-            <img
-              src="/escudo-colegio.png.PNG"
-              alt="Escudo Colegio Ateneo"
-              style={{ width: 220, height: 'auto', borderRadius: 14, boxShadow: '0 10px 30px rgba(2,6,23,0.08)' }}
-            />
           </div>
         </div>
       </section>
@@ -105,42 +72,33 @@ export default function Home() {
           <div className="modal-window" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <div className="modal-title">Servicios</div>
-              <button className="modal-close" onClick={() => setShowServices(false)}>Cerrar</button>
+              <button className="modal-close" onClick={() => setShowServices(false)}>✕</button>
             </div>
             <div className="modal-body">
               <div className="grid">
                 {/* Mensualidad en modal */}
                 <div className="card" style={{ padding: 16 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div className="icon" style={{ width: 42, height: 42, borderRadius: 10, background: '#eef2ff', color: '#1d4ed8', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <BookOpen size={22} />
+                    </div>
                     <div>
                       <h3 style={{ margin: 0 }}>{MENSUALIDAD.name}</h3>
                       <small style={{ color: '#64748b' }}>{MENSUALIDAD.description}</small>
                     </div>
                   </div>
 
-                  <img src={MENSUALIDAD.image} alt="Mensualidad" style={{ display: 'block', margin: '12px auto', maxWidth: '180px', borderRadius: 10 }} />
-
                   <div style={{ display: 'flex', gap: 12, marginTop: 12, flexWrap: 'wrap' }}>
                     <div style={{ minWidth: 180, flex: 1 }}>
-                      <label>Meses a pagar</label>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        {selectedMonths.map((month, idx) => (
-                          <select 
-                            key={idx}
-                            className="input" 
-                            value={month} 
-                            onChange={(e) => handleMonthChange(idx, e.target.value)}
-                          >
-                            {MESES.map((m) => {
-                              const isSelectedElsewhere = selectedMonths.some((sm, sIdx) => sm === m && sIdx !== idx);
-                              return <option key={m} value={m} disabled={isSelectedElsewhere}>{m}</option>
-                            })}
-                          </select>
+                      <label>Mes a pagar</label>
+                      <select className="input" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)}>
+                        {MESES.map((m) => (
+                          <option key={m} value={m}>{m}</option>
                         ))}
-                      </div>
+                      </select>
                     </div>
                     <div style={{ width: 140 }}>
-                      <label>Cantidad</label>
+                      <label>Cantidad de meses</label>
                       <input className="input" type="number" min="1" value={quantity} onChange={(e) => setQuantity(Math.max(1, Number(e.target.value)))} />
                     </div>
                   </div>
@@ -183,21 +141,27 @@ export default function Home() {
         <h3 style={{ textAlign: "center", marginBottom: "1.5rem", fontSize: "1.5rem" }}>¿Por qué elegirnos?</h3>
         <div className="grid">
           <div className="card" style={{ padding: 20, textAlign: "center", transition: "transform 0.2s" }}>
-            <div style={{ fontSize: "2.5rem", marginBottom: "1rem" }}>⏩</div>
+            <div style={{ marginBottom: "1rem", color: "#0b63f6", display: "flex", justifyContent: "center" }}>
+              <ChevronsRight size={48} />
+            </div>
             <h3 style={{ margin: '8px 0 8px', color: "#1e293b" }}>2 Años en 1</h3>
             <p style={{ color: '#64748b', fontSize: "0.95rem" }}>
               Optimiza tu tiempo completando dos grados académicos en un solo ciclo anual. Avanza rápido sin sacrificar calidad.
             </p>
           </div>
           <div className="card" style={{ padding: 20, textAlign: "center", transition: "transform 0.2s" }}>
-            <div style={{ fontSize: "2.5rem", marginBottom: "1rem" }}>📅</div>
+            <div style={{ marginBottom: "1rem", color: "#0b63f6", display: "flex", justifyContent: "center" }}>
+              <Calendar size={48} />
+            </div>
             <h3 style={{ margin: '8px 0 8px', color: "#1e293b" }}>Modalidad Sabatina</h3>
             <p style={{ color: '#64748b', fontSize: "0.95rem" }}>
               Clases presenciales los sábados, diseñadas para quienes trabajan o tienen otras ocupaciones durante la semana.
             </p>
           </div>
           <div className="card" style={{ padding: 20, textAlign: "center", transition: "transform 0.2s" }}>
-            <div style={{ fontSize: "2.5rem", marginBottom: "1rem" }}></div>
+            <div style={{ marginBottom: "1rem", color: "#0b63f6", display: "flex", justifyContent: "center" }}>
+              <GraduationCap size={48} />
+            </div>
             <h3 style={{ margin: '8px 0 8px', color: "#1e293b" }}>Grados 6° a 11°</h3>
             <p style={{ color: '#64748b', fontSize: "0.95rem" }}>
               Cobertura completa del bachillerato. Ingresa en el ciclo que te corresponda y culmina tus estudios hasta obtener tu título.
@@ -210,42 +174,35 @@ export default function Home() {
       <section id="servicios" className="card" style={{ marginBottom: 20 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <h2 style={{ marginTop: 0 }}>Servicios</h2>
-          <span className="badge">Pagos</span>
+          <span className="badge" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <CreditCard size={16} /> Pagos
+          </span>
         </div>
 
         <div className="grid">
           {/* Mensualidad */}
           <div className="card" style={{ padding: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div className="icon" style={{ width: 42, height: 42, borderRadius: 10, background: '#eef2ff', color: '#1d4ed8', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                <BookOpen size={22} />
+              </div>
               <div>
                 <h3 style={{ margin: 0 }}>{MENSUALIDAD.name}</h3>
                 <small style={{ color: '#64748b' }}>{MENSUALIDAD.description}</small>
               </div>
             </div>
 
-            <img src={MENSUALIDAD.image} alt="Mensualidad" style={{ display: 'block', margin: '12px auto', maxWidth: '180px', borderRadius: 10 }} />
-
             <div style={{ display: 'flex', gap: 12, marginTop: 12, flexWrap: 'wrap' }}>
               <div style={{ minWidth: 180, flex: 1 }}>
-                <label>Meses a pagar</label>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {selectedMonths.map((month, idx) => (
-                    <select 
-                      key={idx}
-                      className="input" 
-                      value={month} 
-                      onChange={(e) => handleMonthChange(idx, e.target.value)}
-                    >
-                      {MESES.map((m) => {
-                        const isSelectedElsewhere = selectedMonths.some((sm, sIdx) => sm === m && sIdx !== idx);
-                        return <option key={m} value={m} disabled={isSelectedElsewhere}>{m}</option>
-                      })}
-                    </select>
+                <label>Mes a pagar</label>
+                <select className="input" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)}>
+                  {MESES.map((m) => (
+                    <option key={m} value={m}>{m}</option>
                   ))}
-                </div>
+                </select>
               </div>
               <div style={{ width: 140 }}>
-                <label>Cantidad</label>
+                <label>Cantidad de meses</label>
                 <input className="input" type="number" min="1" value={quantity} onChange={(e) => setQuantity(Math.max(1, Number(e.target.value)))} />
               </div>
             </div>
