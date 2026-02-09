@@ -1,18 +1,42 @@
-import React, { useContext, useState } from 'react'
+import React, { useContext, useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { AuthContext } from '../context/AuthContext'
 import { CartContext } from '../context/CartContext'
 import { useCartUI } from '../context/CartUIContext'
-import { ShoppingCart, LogOut, User } from 'lucide-react'
+import { ShoppingCart, LogOut, User, MessageCircle, FileText } from 'lucide-react'
+import API from '../services/api'
 
 export default function Header() {
   const { user, logout } = useContext(AuthContext)
   const { items } = useContext(CartContext)
   const { toggleCart } = useCartUI()
   const nav = useNavigate()
-  const [logoSrc, setLogoSrc] = useState('/escudo-colegio.png')
+  const [unreadCount, setUnreadCount] = useState(0)
+  
+  // El repo contiene un archivo público llamado `escudo-colegio.png.PNG`.
+  // Usarlo primero para evitar 404; mantener otros fallbacks útiles.
+  const [logoSrc, setLogoSrc] = useState('/escudo-colegio.png.PNG')
   const [fallbackIndex, setFallbackIndex] = useState(0)
-  const fallbacks = ['/escudo-colegio.svg', '/escudo.png', '/escudo.svg', 'https://via.placeholder.com/40?text=']
+  const fallbacks = ['/escudo-colegio.png', '/escudo-colegio.svg', '/escudo.png', '/escudo.svg', 'https://via.placeholder.com/40?text=Escudo']
+
+  // Obtener contador de anuncios sin leer
+  useEffect(() => {
+    if (user) {
+      const fetchUnreadCount = async () => {
+        try {
+          const { data } = await API.get('/api/announcements/new-count')
+          setUnreadCount(data.unread_count)
+        } catch (err) {
+          console.error('Error fetching unread count:', err)
+        }
+      }
+      fetchUnreadCount()
+      
+      // Actualizar cada 30 segundos
+      const interval = setInterval(fetchUnreadCount, 30000)
+      return () => clearInterval(interval)
+    }
+  }, [user])
 
   return (
     <div style={{
@@ -49,6 +73,37 @@ export default function Header() {
 
       {/* DERECHA */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <Link to="/anuncios" style={{ position: 'relative' }}>
+          <button className="button" style={{ display: 'flex', alignItems: 'center', gap: 6, position: 'relative' }}>
+            <MessageCircle size={18} /> Anuncios
+            {user && unreadCount > 0 && (
+              <span style={{
+                position: 'absolute',
+                top: -8,
+                right: -8,
+                backgroundColor: '#ef4444',
+                color: '#fff',
+                borderRadius: '50%',
+                width: 24,
+                height: 24,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 12,
+                fontWeight: 'bold'
+              }}>
+                {unreadCount}
+              </span>
+            )}
+          </button>
+        </Link>
+
+        <Link to="/documentos">
+          <button className="button" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <FileText size={18} /> Documentos
+          </button>
+        </Link>
+
         <button className="button" onClick={toggleCart} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <ShoppingCart size={18} /> Carrito ({items.length})
         </button>

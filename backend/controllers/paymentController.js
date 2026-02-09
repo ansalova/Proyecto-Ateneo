@@ -147,6 +147,32 @@ export const receiveWebhook = async (req, res) => {
   try {
     const body = req.body || {};
     console.log('[MP] WEBHOOK POST:', JSON.stringify(body));
+    
+    // Procesar notificaciones de Mercado Pago
+    const topic = body.action || body.type;
+    
+    if (topic === 'payment.updated' || topic === 'payment.created') {
+      const paymentId = body.data?.id;
+      if (paymentId && paymentClient) {
+        try {
+          const payment = await paymentClient.get({ id: paymentId });
+          const externalRef = payment.external_reference;
+          const status = payment.status; // approved, pending, rejected, etc.
+          
+          if (externalRef) {
+            const dbStatus = status === 'approved' ? 'completed' : 
+                           status === 'pending' ? 'pending' : 
+                           status === 'rejected' ? 'failed' : 'processing';
+            
+            const order = await updateOrderStatus(externalRef, dbStatus);
+            console.log(`[MP] Orden actualizada: ${externalRef} -> ${dbStatus}`, order);
+          }
+        } catch (err) {
+          console.error('[MP] Error al procesar pago:', err.message);
+        }
+      }
+    }
+    
     res.sendStatus(200);
   } catch (e) {
     console.error('webhook POST error:', e);
@@ -156,7 +182,10 @@ export const receiveWebhook = async (req, res) => {
 
 export const receiveWebhookGet = async (req, res) => {
   try {
-    console.log('[MP] WEBHOOK GET:', JSON.stringify(req.query));
+    console.log('[MP] WEBHOOK GET (confirmación de recepción):', JSON.stringify(req.query));
+    
+    // Mercado Pago típicamente envía un GET para confirmación
+    // Solo log y respuesta 200 es suficiente
     res.sendStatus(200);
   } catch (e) {
     console.error('webhook GET error:', e);

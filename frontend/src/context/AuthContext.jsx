@@ -46,7 +46,18 @@ export function AuthProvider({ children }) {
       setUser(data.user);
       return { success: true };
     } catch (err) {
-      return { success: false, message: err.response?.data?.msg || "No se pudo conectar al servidor." };
+      console.error('Login error:', err);
+      
+      // Mensajes de error más específicos
+      if (err.code === 'ECONNREFUSED' || err.code === 'ERR_NETWORK') {
+        return { success: false, message: "No se puede conectar al servidor. Verifica que el backend está corriendo en http://localhost:5000" };
+      }
+      
+      if (err.response?.status === 0 || !err.response) {
+        return { success: false, message: "Error de conectividad. Verifica la configuración del servidor." };
+      }
+      
+      return { success: false, message: err.response?.data?.msg || err.message || "No se pudo conectar al servidor." };
     }
   };
 

@@ -6,7 +6,6 @@ export default function Checkout() {
   const { items, total } = useContext(CartContext)
   const nav = useNavigate()
 
-  // Campos obligatorios para la mensualidad
   const [studentName, setStudentName] = useState('')
   const [studentId, setStudentId] = useState('')
   const [grade, setGrade] = useState('')
@@ -20,28 +19,39 @@ export default function Checkout() {
       setErrorMsg('El carrito está vacío')
       return
     }
-    if (!studentName || !studentId || !grade || !parentEmail) {
-      setErrorMsg('Por favor completa los datos del estudiante (nombre, identificación, grado y correo).')
+
+    const errors = []
+    if (!studentName || studentName.trim().length < 2) errors.push('Nombre inválido (mín. 2 caracteres)')
+    if (!studentId || studentId.trim().length < 5) errors.push('Identificación inválida')
+    if (!grade || grade.trim().length < 1) errors.push('Grado es obligatorio')
+    if (!parentEmail || !parentEmail.includes('@')) errors.push('Correo inválido')
+
+    if (errors.length > 0) {
+      setErrorMsg('Por favor corrija los errores: ' + errors.join(', '))
       return
     }
 
     setLoading(true)
     setErrorMsg('')
 
-    // Preparamos metadata que irá al backend / pasarela
-    const metadata = {
-      studentName,
-      studentId,
-      grade,
-      parentEmail,
-      phone,
-      items: items.map(i => ({ id: i.id, name: i.name, qty: i.qty, price: i.price, metadata: i.metadata || {} })),
-      total: total()
-    }
+    try {
+      const metadata = {
+        studentName: studentName.trim(),
+        studentId: studentId.trim(),
+        grade: grade.trim(),
+        parentEmail: parentEmail.trim(),
+        phone: phone.trim() || null,
+        items: items.map(i => ({ id: i.id, name: i.name, qty: i.qty, price: i.price, metadata: i.metadata || {} })),
+        total: total()
+      }
 
-    // Navegamos a selección de método de pago, llevando amount y metadata
-    nav('/pago', { state: { amount: total(), metadata } })
-    setLoading(false)
+      nav('/pago', { state: { amount: total(), metadata } })
+    } catch (err) {
+      setErrorMsg('Error al preparar el pago. Intenta de nuevo.')
+      console.error('Checkout error:', err)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -96,3 +106,4 @@ export default function Checkout() {
     </div>
   )
 }
+

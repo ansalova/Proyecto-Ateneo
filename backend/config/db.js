@@ -123,6 +123,40 @@ const connectDB = async () => {
         changed_at TIMESTAMP DEFAULT NOW()
       );
     `);
+    await p.query(`
+      CREATE TABLE IF NOT EXISTS announcements (
+        id SERIAL PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        content TEXT NOT NULL,
+        created_by INTEGER REFERENCES users(id),
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW(),
+        visible BOOLEAN DEFAULT true
+      );
+    `);
+    await p.query(`
+      CREATE TABLE IF NOT EXISTS documents (
+        id SERIAL PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        document_type VARCHAR(50) NOT NULL,
+        student_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        file_url VARCHAR(500),
+        file_content TEXT,
+        created_by INTEGER REFERENCES users(id),
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW(),
+        is_public BOOLEAN DEFAULT false
+      );
+    `);
+    await p.query(`
+      CREATE TABLE IF NOT EXISTS announcement_reads (
+        id SERIAL PRIMARY KEY,
+        announcement_id INTEGER REFERENCES announcements(id) ON DELETE CASCADE,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        read_at TIMESTAMP DEFAULT NOW(),
+        UNIQUE(announcement_id, user_id)
+      );
+    `);
     console.log("PostgreSQL conectado y tablas verificadas");
   } catch (error) {
     console.error("Error al conectar PostgreSQL:", error);

@@ -16,6 +16,8 @@ import Dashboard from "./pages/Dashboard";
 import TeacherDashboard from "./pages/TeacherDashboard";
 import StudentProfile from "./pages/StudentProfile";
 import StudentGrades from "./pages/StudentGrades";
+import Anuncios from "./pages/Anuncios";
+import Documentos from "./pages/Documentos";
 import ProtectedRoute from "./components/ProtectedRoute";
 import TeacherRoute from "./components/TeacherRoute";
 
@@ -75,6 +77,26 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <ConfirmacionPago />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Anuncios */}
+          <Route
+            path="/anuncios"
+            element={
+              <ProtectedRoute>
+                <Anuncios />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Documentos */}
+          <Route
+            path="/documentos"
+            element={
+              <ProtectedRoute>
+                <Documentos />
               </ProtectedRoute>
             }
           />

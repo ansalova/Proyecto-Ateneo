@@ -10,6 +10,7 @@ export default function PaymentMethodsPage() {
   const amount = state?.amount || 0;
   const metadata = state?.metadata || {};
   const [errorMsg, setErrorMsg] = useState("");
+  const [loadingMethod, setLoadingMethod] = useState(null);
 
   const handleSelect = async (method) => {
     if (!amount || amount <= 0) {
@@ -17,28 +18,53 @@ export default function PaymentMethodsPage() {
       return;
     }
 
-    const res = await processPayment({ amount, metadata, method });
+    setLoadingMethod(method);
+    setErrorMsg("");
+    
+    try {
+      const res = await processPayment({ amount, metadata, method });
 
-    if (res.offline) {
-      // Mostrar confirmación con instrucciones
-      const params = new URLSearchParams({
-        method,
-        reference: res.reference,
-        title: res.instructions?.title || '',
-        account: res.instructions?.account || '',
-        message: res.instructions?.message || ''
-      })
-      navigate(`/confirmacion-pago?${params.toString()}`)
-      return;
+      if (res.offline) {
+        // Mostrar confirmación con instrucciones
+        const params = new URLSearchParams({
+          method,
+          reference: res.reference,
+          title: res.instructions?.title || '',
+          account: res.instructions?.account || '',
+          message: res.instructions?.message || ''
+        })
+        navigate(`/confirmacion-pago?${params.toString()}`)
+        return;
+      }
+
+      if (res.redirected) {
+        // El navegador será redirigido al checkout de la pasarela
+        return;
+      }
+
+      if (res.success) {
+        // Fallback o método simulado
+        setErrorMsg("Procesando... Por favor espera.");
+        return;
+      }
+
+      setErrorMsg(res.message || "No fue posible iniciar el pago. Intenta nuevamente.");
+    } catch (err) {
+      console.error("Payment error:", err);
+      setErrorMsg("Error al procesar el pago. Verifica tu conexión e intenta de nuevo.");
+    } finally {
+      setLoadingMethod(null);
     }
-
-    if (res.redirected) {
-      // El navegador será redirigido al checkout de la pasarela
-      return;
-    }
-
-    setErrorMsg(res.message || "No fue posible iniciar el pago");
   };
+
+  if (!amount || amount <= 0) {
+    return (
+      <div className="payment-container">
+        <h1>Error</h1>
+        <p>El monto no es válido. <a href="/carrito">Vuelve al carrito.</a></p>
+      </div>
+    );
+  }
 
   return (
     <div className="payment-container">
@@ -61,6 +87,8 @@ export default function PaymentMethodsPage() {
           description="Visa, MasterCard, American Express"
           icon={<CreditCard size={24} />}
           onClick={() => handleSelect("tarjeta")}
+          disabled={loadingMethod !== null}
+          loading={loadingMethod === "tarjeta"}
         />
 
         <PaymentCard 
@@ -68,6 +96,8 @@ export default function PaymentMethodsPage() {
           description="Pago seguro en línea"
           icon={<Landmark size={24} />}
           onClick={() => handleSelect("pse")}
+          disabled={loadingMethod !== null}
+          loading={loadingMethod === "pse"}
         />
 
         <PaymentCard 
@@ -75,6 +105,8 @@ export default function PaymentMethodsPage() {
           description="Pago rápido desde tu celular"
           icon={<Smartphone size={24} />}
           onClick={() => handleSelect("nequi")}
+          disabled={loadingMethod !== null}
+          loading={loadingMethod === "nequi"}
         />
 
         <PaymentCard 
@@ -82,6 +114,8 @@ export default function PaymentMethodsPage() {
           description="Pagos desde monedero digital"
           icon={<Briefcase size={24} />}
           onClick={() => handleSelect("daviplata")}
+          disabled={loadingMethod !== null}
+          loading={loadingMethod === "daviplata"}
         />
 
         <PaymentCard 
@@ -89,6 +123,8 @@ export default function PaymentMethodsPage() {
           description="Realice el pago de forma presencial"
           icon={<School size={24} />}
           onClick={() => handleSelect("oficina")}
+          disabled={loadingMethod !== null}
+          loading={loadingMethod === "oficina"}
         />
       </div>
     </div>
