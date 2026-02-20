@@ -15,7 +15,7 @@ jobs:
         node-version: [18.x, 20.x]
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v6
     
     - name: Setup Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v3
@@ -61,7 +61,7 @@ jobs:
     if: success()
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v6
     
     - name: Setup Node.js
       uses: actions/setup-node@v3
@@ -85,7 +85,7 @@ jobs:
     if: success()
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v6
     
     - name: Setup Node.js
       uses: actions/setup-node@v3
@@ -121,7 +121,7 @@ jobs:
     if: github.ref == 'refs/heads/develop'
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v6
     
     - name: Deploy to staging
       run: |
@@ -145,7 +145,7 @@ jobs:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v6
     
     - name: Confirm production deployment
       run: |
