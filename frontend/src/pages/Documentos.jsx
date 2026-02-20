@@ -19,9 +19,16 @@ export default function Documentos() {
   })
 
   useEffect(() => {
-    fetchDocuments()
-    if (user && (user.role === 'admin' || user.role === 'teacher')) {
-      fetchStudents()
+    // Solo cargar documentos si hay usuario autenticado
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
+    if (user && token) {
+      fetchDocuments()
+      if (user.role === 'admin' || user.role === 'teacher') {
+        fetchStudents()
+      }
+    } else if (!token) {
+      setError('Debes iniciar sesión para ver documentos')
+      setLoading(false)
     }
   }, [user])
 
@@ -32,8 +39,14 @@ export default function Documentos() {
       setDocuments(data)
       setError('')
     } catch (err) {
-      setError('Error al cargar documentos')
-      console.error(err)
+      console.error('Error en fetchDocuments:', err.response?.status, err.response?.data, err.message)
+      if (err.response?.status === 401) {
+        setError('No autorizado. Por favor inicia sesión de nuevo.')
+      } else if (err.response?.status === 500) {
+        setError('Error del servidor. Contacta al administrador.')
+      } else {
+        setError('Error al cargar documentos: ' + (err.response?.data?.msg || err.message))
+      }
     } finally {
       setLoading(false)
     }
@@ -125,7 +138,7 @@ export default function Documentos() {
 
           {showForm && (
             <div className="card" style={{ background: '#f0f9ff' }}>
-              <h3>Crear Documento</h3>
+              <h3>Crear documento</h3>
               <form onSubmit={handleCreateDocument}>
                 <label>Título</label>
                 <input

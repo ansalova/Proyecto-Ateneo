@@ -21,13 +21,23 @@ export default function Anuncios() {
       const { data } = await API.get('/api/announcements')
       setAnnouncements(data)
       
-      // Marcar todos los anuncios como leídos
-      for (const ann of data) {
-        if (!ann.is_read) {
-          try {
-            await API.post(`/api/announcements/${ann.id}/mark-read`)
-          } catch (err) {
-            console.error('Error marking announcement as read:', err)
+      // Marcar todos los anuncios no leídos como leídos en una sola petición
+      const unreadIds = data
+        .filter(ann => !ann.is_read)
+        .map(ann => ann.id)
+      
+      if (unreadIds.length > 0) {
+        try {
+          await API.post('/api/announcements/mark-read-batch', { ids: unreadIds })
+        } catch (err) {
+          // Si falla la petición batch, fallback: intentar individual (pero no bloquea)
+          console.warn('Batch mark-read falló, intentando individual:', err)
+          for (const id of unreadIds) {
+            try {
+              await API.post(`/api/announcements/${id}/mark-read`)
+            } catch (e) {
+              console.error(`Error marking announcement ${id} as read:`, e)
+            }
           }
         }
       }

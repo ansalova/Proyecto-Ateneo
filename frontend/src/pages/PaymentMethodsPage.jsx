@@ -68,7 +68,7 @@ export default function PaymentMethodsPage() {
 
   return (
     <div className="payment-container">
-      <h1>Pago de Mensualidad</h1>
+      <h1>Pago de mensualidad</h1>
       <p>Seleccione uno de los métodos de pago disponibles.</p>
 
       <div className="monto">

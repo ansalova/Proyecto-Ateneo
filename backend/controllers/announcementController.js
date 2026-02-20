@@ -149,6 +149,39 @@ export const getUnreadCount = async (req, res) => {
   }
 };
 
+// Marcar múltiples anuncios como leídos de una vez
+export const markAnnouncementsAsReadBatch = async (req, res) => {
+  try {
+    const { ids } = req.body
+    const user_id = req.user.id
+
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ msg: 'IDs de anuncios requeridas' })
+    }
+
+    // Validar que sea máximo 100 anuncios por petición
+    if (ids.length > 100) {
+      return res.status(400).json({ msg: 'Máximo 100 anuncios a la vez' })
+    }
+
+    const pool = getPool()
+    const placeholders = ids.map((_, i) => `($1, $${i + 2})`).join(',')
+    const query = `
+      INSERT INTO announcement_reads (announcement_id, user_id)
+      VALUES ${placeholders}
+      ON CONFLICT (announcement_id, user_id) DO NOTHING
+    `
+    const params = [user_id, ...ids]
+
+    await pool.query(query, params)
+
+    res.json({ msg: 'Anuncios marcados como leídos', count: ids.length })
+  } catch (error) {
+    console.error('Error en markAnnouncementsAsReadBatch:', error)
+    res.status(500).json({ msg: 'Error al marcar anuncios como leídos' })
+  }
+}
+
 export const markAnnouncementAsRead = async (req, res) => {
   try {
     const pool = getPool();

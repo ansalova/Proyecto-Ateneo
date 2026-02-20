@@ -13,8 +13,8 @@ export const getDocuments = async (req, res) => {
 
     if (userRole === 'admin' || userRole === 'teacher') {
       // Admins y teachers ven todos los documentos, estudiantes solo los suyos
-      query = `SELECT id, title, document_type, student_id, file_url, 
-                      created_by, created_at, is_public,
+      query = `SELECT d.id, d.title, d.document_type, d.student_id, d.file_url, 
+                      d.created_by, d.created_at, d.is_public,
                       u.name as created_by_name, s.name as student_name
                FROM documents d
                LEFT JOIN users u ON d.created_by = u.id
@@ -24,8 +24,8 @@ export const getDocuments = async (req, res) => {
       params = [];
     } else {
       // Estudiantes solo ven sus propios documentos
-      query = `SELECT id, title, document_type, student_id, file_url,
-                      created_by, created_at, is_public,
+      query = `SELECT d.id, d.title, d.document_type, d.student_id, d.file_url,
+                      d.created_by, d.created_at, d.is_public,
                       u.name as created_by_name
                FROM documents d
                LEFT JOIN users u ON d.created_by = u.id

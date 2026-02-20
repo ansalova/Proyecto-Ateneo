@@ -1,6 +1,6 @@
 import React, { useState, useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 
 export default function Login() {
   const { login } = useContext(AuthContext);
@@ -53,6 +53,24 @@ export default function Login() {
 
         <button className="button" type="submit">Entrar</button>
       </form>
+
+      <div style={{ marginTop: 16, textAlign: 'center' }}>
+        <Link
+          to="/forgot-password"
+          style={{ color: '#2563eb', textDecoration: 'none', fontSize: 14, display: 'block', marginBottom: 8 }}
+        >
+          ¿Olvidaste tu contraseña?
+        </Link>
+        <p style={{ margin: '12px 0 0 0', fontSize: 14 }}>
+          ¿No tienes cuenta? 
+          <Link
+            to="/register"
+            style={{ color: '#2563eb', textDecoration: 'none', marginLeft: 6 }}
+          >
+            Regístrate aquí
+          </Link>
+        </p>
+      </div>
     </div>
   );
 }

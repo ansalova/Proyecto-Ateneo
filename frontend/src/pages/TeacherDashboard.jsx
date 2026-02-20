@@ -27,7 +27,7 @@ export default function TeacherDashboard() {
       <h1>Panel de profesores</h1>
       
       <div className="table-responsive">
-        <h3>Lista de Estudiantes</h3>
+        <h3>Lista de estudiantes</h3>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ textAlign: "left", borderBottom: "1px solid #ccc" }}>

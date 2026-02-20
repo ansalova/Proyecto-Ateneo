@@ -1,5 +1,5 @@
 import express from 'express';
-import { getAnnouncements, createAnnouncement, updateAnnouncement, deleteAnnouncement, getUnreadCount, markAnnouncementAsRead } from '../controllers/announcementController.js';
+import { getAnnouncements, createAnnouncement, updateAnnouncement, deleteAnnouncement, getUnreadCount, markAnnouncementAsRead, markAnnouncementsAsReadBatch } from '../controllers/announcementController.js';
 import { protect, authorize } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
@@ -10,8 +10,11 @@ router.get('/', getAnnouncements);
 // Obtener cantidad de anuncios sin leer
 router.get('/new-count', protect, getUnreadCount);
 
-// Marcar anuncio como leído
+// Marcar anuncio como leído (individual)
 router.post('/:id/mark-read', protect, markAnnouncementAsRead);
+
+// Marcar múltiples anuncios como leídos en batch
+router.post('/mark-read-batch', protect, markAnnouncementsAsReadBatch);
 
 // Admin y profesores pueden crear anuncios
 router.post('/', protect, authorize('admin', 'teacher'), createAnnouncement);

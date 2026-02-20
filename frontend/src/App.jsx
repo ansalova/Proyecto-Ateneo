@@ -8,6 +8,8 @@ import CartDrawer from "./components/CartDrawer";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Register from "./pages/Register";   // ← asegúrate de tener esta página
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import Carrito from "./pages/Carrito";
 import Checkout from "./pages/Checkout";
 import PaymentMethodsPage from "./pages/PaymentMethodsPage";
@@ -18,6 +20,10 @@ import StudentProfile from "./pages/StudentProfile";
 import StudentGrades from "./pages/StudentGrades";
 import Anuncios from "./pages/Anuncios";
 import Documentos from "./pages/Documentos";
+import AdminDashboard from "./pages/AdminDashboard";
+import PaymentReport from "./pages/PaymentReport";
+import Messaging from "./pages/Messaging";
+import ContactForm from "./pages/ContactForm";
 import ProtectedRoute from "./components/ProtectedRoute";
 import TeacherRoute from "./components/TeacherRoute";
 
@@ -40,6 +46,8 @@ export default function App() {
           {/* Autenticación */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
 
           {/* Carrito */}
           <Route path="/carrito" element={<Carrito />} />
@@ -110,6 +118,39 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* Dashboard Admin */}
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute>
+                <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Reporte de Pagos */}
+          <Route
+            path="/admin/pagos"
+            element={
+              <ProtectedRoute>
+                <PaymentReport />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Mensajes */}
+          <Route
+            path="/mensajes"
+            element={
+              <ProtectedRoute>
+                <Messaging />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Contacto */}
+          <Route path="/contacto" element={<ContactForm />} />
 
           {/* Panel Profesor */}
           <Route path="/profesor" element={<TeacherRoute />}>

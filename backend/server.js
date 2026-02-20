@@ -9,24 +9,42 @@ import teacherRoutes from "./routes/teacherRoutes.js";
 import studentRoutes from "./routes/studentRoutes.js";
 import announcementRoutes from "./routes/announcementRoutes.js";
 import documentRoutes from "./routes/documentRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
+import messageRoutes from "./routes/messageRoutes.js";
+import contactRoutes from "./routes/contactRoutes.js";
 
 dotenv.config();
 connectDB();
 
 const app = express();
 
-// CORS configuration from environment
+// CORS configuration: in production use configured origins, in dev allow localhost origins
 const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-const allowedOrigins = [
-  frontendUrl,
-  ...(process.env.EXTRA_ORIGINS ? process.env.EXTRA_ORIGINS.split(',').map(o => o.trim()) : [])
-];
+const extraOrigins = process.env.EXTRA_ORIGINS ? process.env.EXTRA_ORIGINS.split(',').map(o => o.trim()) : [];
 
-app.use(cors({
-  origin: allowedOrigins,
-  credentials: true,
-  methods: "GET,POST,PUT,DELETE"
-}));
+if (process.env.NODE_ENV === 'production') {
+  const allowedOrigins = [frontendUrl, ...extraOrigins];
+  app.use(cors({ origin: allowedOrigins, credentials: true, methods: 'GET,POST,PUT,DELETE' }));
+} else {
+  // Desarrollo: permitir requests desde cualquier localhost origin (5173, 5174, etc.)
+  app.use(cors({
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      try {
+        const u = new URL(origin);
+        if (u.hostname === 'localhost' || u.hostname === '127.0.0.1') return callback(null, true);
+      } catch (e) {
+        // permitir si no podemos parsear
+        return callback(null, true);
+      }
+      // Fallback a las origins configuradas
+      const allowed = [frontendUrl, ...extraOrigins];
+      callback(allowed.includes(origin) ? null : new Error('Not allowed by CORS'));
+    },
+    credentials: true,
+    methods: 'GET,POST,PUT,DELETE'
+  }));
+}
 app.use(express.json());
 app.use(express.urlencoded({ extended: true })); // Para webhooks
 app.use(morgan("dev"));
@@ -38,6 +56,9 @@ app.use("/api/teacher", teacherRoutes);
 app.use("/api/student", studentRoutes);
 app.use("/api/announcements", announcementRoutes);
 app.use("/api/documents", documentRoutes);
+app.use("/api/admin", adminRoutes);
+app.use("/api/messages", messageRoutes);
+app.use("/api/contact", contactRoutes);
 
 app.get("/", (req, res) => res.json({ status: 'ok', msg: "API funcionando correctamente ✔" }));
 app.get("/api/health", (req, res) => res.json({ status: 'healthy', timestamp: new Date().toISOString() }));

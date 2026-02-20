@@ -9,7 +9,8 @@
     "start": "node server.js",
     "lint": "eslint . --ext .js",
     "lint:fix": "eslint . --ext .js --fix",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test": "echo 'Tests disponibles en ./tests - Ejecutar con un test runner como Jest'"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

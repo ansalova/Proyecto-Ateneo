@@ -52,7 +52,7 @@ export default function Home() {
             </div>
             <h1 style={{ margin: 0, fontSize: '2rem' }}>Formación integral con excelencia académica</h1>
             <p style={{ color: '#64748b', marginTop: 8 }}>
-              Bienvenido al portal del Colegio Ateneo. Aquí encontrarás información general del colegio y podrás realizar el pago de la mensualidad de forma segura y rápida.
+              Bienvenido al portal del colegio Ateneo. Aquí encontrarás información general del colegio y podrás realizar el pago de la mensualidad de forma segura y rápida.
             </p>
             <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
               <button className="button" onClick={() => setShowServices(true)}>Ver servicios</button>
@@ -105,7 +105,7 @@ export default function Home() {
 
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, gap: 12, flexWrap: 'wrap' }}>
                     <strong style={{ fontSize: 18 }}>${MENSUALIDAD.price.toLocaleString('es-CO')}</strong>
-                    <button className="button" onClick={() => { handlePay(); setShowServices(false); }}>Pagar Mensualidad</button>
+                    <button className="button" onClick={() => { handlePay(); setShowServices(false); }}>ensualidad</button>
                   </div>
                 </div>
               </div>
@@ -209,7 +209,7 @@ export default function Home() {
 
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, gap: 12, flexWrap: 'wrap' }}>
               <strong style={{ fontSize: 18 }}>${MENSUALIDAD.price.toLocaleString('es-CO')}</strong>
-              <button className="button" onClick={handlePay}>Pagar Mensualidad</button>
+              <button className="button" onClick={handlePay}>Pagar mensualidad</button>
             </div>
           </div>
         </div>

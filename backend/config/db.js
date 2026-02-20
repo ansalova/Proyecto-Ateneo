@@ -157,6 +157,39 @@ const connectDB = async () => {
         UNIQUE(announcement_id, user_id)
       );
     `);
+    await p.query(`
+      CREATE TABLE IF NOT EXISTS messages (
+        id SERIAL PRIMARY KEY,
+        sender_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        recipient_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        subject VARCHAR(255),
+        content TEXT NOT NULL,
+        is_read BOOLEAN DEFAULT false,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      );
+    `);
+    await p.query(`
+      CREATE INDEX IF NOT EXISTS idx_messages_recipient ON messages(recipient_id);
+    `);
+    await p.query(`
+      CREATE TABLE IF NOT EXISTS contact_submissions (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        email VARCHAR(255) NOT NULL,
+        phone VARCHAR(20),
+        subject VARCHAR(255) NOT NULL,
+        message TEXT NOT NULL,
+        status VARCHAR(50) DEFAULT 'nuevo',
+        response TEXT,
+        responded_by INTEGER REFERENCES users(id),
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      );
+    `);
+    await p.query(`
+      CREATE INDEX IF NOT EXISTS idx_contact_status ON contact_submissions(status);
+    `);
     console.log("PostgreSQL conectado y tablas verificadas");
   } catch (error) {
     console.error("Error al conectar PostgreSQL:", error);

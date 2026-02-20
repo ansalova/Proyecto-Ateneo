@@ -47,3 +47,13 @@ export const countAdmins = async () => {
   );
   return rows[0]?.count ?? 0;
 };
+
+export const updatePassword = async (id, hashedPassword) => {
+  const pool = getPool();
+  if (!pool) throw new Error("DB_NOT_CONFIGURED");
+  const { rows } = await pool.query(
+    "UPDATE users SET password = $1, updated_at = NOW() WHERE id = $2 RETURNING id, email",
+    [hashedPassword, id]
+  );
+  return rows[0] || null;
+};

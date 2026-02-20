@@ -27,7 +27,7 @@ export default function StudentGrades() {
   if (grades.length === 0) {
     return (
       <div className="container" style={{ padding: "20px" }}>
-        <h1>Mis Calificaciones</h1>
+      <h1>Mis calificaciones</h1>
         <p>No tienes calificaciones registradas aún.</p>
       </div>
     );
@@ -43,7 +43,7 @@ export default function StudentGrades() {
               <th style={{ padding: "10px" }}>Materia</th>
               <th style={{ padding: "10px" }}>Periodo</th>
               <th style={{ padding: "10px" }}>Calificación</th>
-              <th style={{ padding: "10px" }}>Última Actualización</th>
+              <th style={{ padding: "10px" }}>Última actualización</th>
             </tr>
           </thead>
           <tbody>
