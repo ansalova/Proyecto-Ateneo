@@ -9,7 +9,7 @@ export default function StudentGrades() {
   useEffect(() => {
     const fetchGrades = async () => {
       try {
-        const { data } = await API.get("/api/student/my-grades");
+        const { data } = await API.get(`/api/student/my-grades?t=${Date.now()}`);
         console.log("grades response", data);
         if (!Array.isArray(data)) {
           throw new Error("Formato inválido de calificaciones");

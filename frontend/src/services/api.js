@@ -23,6 +23,12 @@ API.interceptors.request.use(
         config.headers = config.headers || {}
         config.headers.Authorization = `Bearer ${token}`
       }
+      // Forzar no caché para peticiones GET
+      if (config.method === 'get' || config.method === 'GET') {
+        config.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        config.headers['Pragma'] = 'no-cache'
+        config.headers['Expires'] = '0'
+      }
     } catch (e) {
       // localStorage puede fallar en algunos entornos de prueba; ignorar
     }
