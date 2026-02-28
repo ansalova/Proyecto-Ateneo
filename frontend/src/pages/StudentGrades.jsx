@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import API from "../services/api";
 
+const SUBJECTS_ORDER = ["Matemáticas", "Español", "Ciencias", "Historia", "Inglés", "Arte", "Educación Física", "Tecnología"];
+
 export default function StudentGrades() {
   const [grades, setGrades] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -36,8 +38,12 @@ export default function StudentGrades() {
           ...g,
           grade: typeof g.grade === 'string' ? parseFloat(g.grade) : g.grade
         }));
-        console.log("✅ Grades procesadas:", gradesWithNumbers);
-        setGrades(gradesWithNumbers);
+        // Ordenar por el orden de SUBJECTS definido
+        const sortedGrades = gradesWithNumbers.sort((a, b) => 
+          SUBJECTS_ORDER.indexOf(a.subject) - SUBJECTS_ORDER.indexOf(b.subject)
+        );
+        console.log("✅ Grades procesadas y ordenadas:", sortedGrades);
+        setGrades(sortedGrades);
       } catch (err) {
         console.error("Error fetching grades:", err);
         // Construir mensaje con prioridad, y detectar fallos de conexión
