@@ -9,6 +9,16 @@ export default function StudentGrades() {
   useEffect(() => {
     const fetchGrades = async () => {
       try {
+        // Limpiar caché del navegador antes de cargar
+        try {
+          if (window.caches) {
+            const cacheNames = await caches.keys();
+            await Promise.all(cacheNames.map(name => caches.delete(name)));
+          }
+        } catch (e) {
+          console.log('No hay service worker caché');
+        }
+        
         const { data } = await API.get(`/api/student/my-grades?t=${Date.now()}`);
         console.log("grades response", data);
         if (!Array.isArray(data)) {
