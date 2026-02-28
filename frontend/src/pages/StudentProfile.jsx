@@ -116,7 +116,10 @@ export default function StudentProfile() {
   return (
     <div className="container" style={{ padding: 20 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <h1>{student ? `Perfil de ${student.name}` : "Perfil del Estudiante"}</h1>
+        <h1>
+          {student ? `Perfil de ${student.name}` : "Perfil del Estudiante"}
+          {student && <span style={{ fontSize: '0.8rem', marginLeft: 8, color: '#94a3b8' }}>(ID {student.id})</span>}
+        </h1>
         <Link to="/profesor">
           <button className="button button-outline">Volver</button>
         </Link>

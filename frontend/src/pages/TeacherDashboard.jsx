@@ -46,7 +46,9 @@ export default function TeacherDashboard() {
               to={`estudiantes/${s.id}`}
               style={{ textDecoration: 'none', color: '#0b63f6' }}
             >
-              <h2 style={{ margin: '0 0 8px 0', fontSize: '1.25rem' }}>{s.name}</h2>
+              <h2 style={{ margin: '0 0 8px 0', fontSize: '1.25rem' }}>
+                {s.name} <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>(ID {s.id})</span>
+              </h2>
             </Link>
             <p style={{ margin: '4px 0', color: '#475569' }}><strong>Email:</strong> {s.email}</p>
             <p style={{ margin: '4px 0', color: '#475569' }}>

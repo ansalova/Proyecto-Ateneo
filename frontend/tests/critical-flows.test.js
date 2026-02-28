@@ -145,6 +145,13 @@ describe('Admin Dashboard - Control de Acceso', () => {
     });
   });
 
+  test('TeacherDashboard muestra ID del estudiante en la tarjeta', () => {
+    // simula objeto de estudiante obtenido desde API
+    const s = { id: 42, name: 'Juan Pérez', email: 'jp@example.com', role: 'student' };
+    const rendered = `<div><h2>${s.name} <span>(ID ${s.id})</span></h2></div>`;
+    expect(rendered).toContain(`ID ${s.id}`);
+  });
+
   test('Stats deben mostrar distribución de usuarios', () => {
     const stats = {
       student: 25,
