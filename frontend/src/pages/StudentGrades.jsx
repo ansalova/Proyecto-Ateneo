@@ -9,18 +9,25 @@ export default function StudentGrades() {
   useEffect(() => {
     const fetchGrades = async () => {
       try {
-        // Limpiar caché del navegador antes de cargar
-        try {
-          if (window.caches) {
+        // Limpiar completamente caché y storage
+        if (window.caches) {
+          try {
             const cacheNames = await caches.keys();
             await Promise.all(cacheNames.map(name => caches.delete(name)));
+            console.log('✅ Service worker cache limpiado');
+          } catch (e) {
+            console.log('ℹ️ No hay service worker caché');
           }
-        } catch (e) {
-          console.log('No hay service worker caché');
         }
         
-        const { data } = await API.get(`/api/student/my-grades?t=${Date.now()}`);
-        console.log("grades response", data);
+        // Forzar recarga sin caché con timestamp
+        const timestamp = new Date().getTime();
+        const url = `/api/student/my-grades?t=${timestamp}&nocache=${Math.random()}`;
+        console.log('📡 Petición a:', url);
+        
+        const { data } = await API.get(url);
+        console.log("📦 Respuesta recibida:", data);
+        console.log("📊 Tipo:", typeof data, "Es array:", Array.isArray(data), "Cantidad:", data?.length);
         if (!Array.isArray(data)) {
           throw new Error("Formato inválido de calificaciones");
         }
@@ -40,27 +47,57 @@ export default function StudentGrades() {
     fetchGrades();
   }, []);
 
-  if (loading)
-    return (
-      <div className="container" style={{ padding: "20px", textAlign: 'center' }}>
-        <p>Cargando calificaciones...</p>
-      </div>
-    );
+  const manualRefresh = async () => {
+    console.log('🔄 Limpieza manual iniciada...');
+    try {
+      // Limpiar localStorage
+      localStorage.clear();
+      console.log('✅ localStorage limpiado');
+      
+      // Limpiar sessionStorage
+      sessionStorage.clear();
+      console.log('✅ sessionStorage limpiado');
+      
+      // Limpiar service worker cache
+      if (window.caches) {
+        const cacheNames = await caches.keys();
+        await Promise.all(cacheNames.map(name => caches.delete(name)));
+        console.log('✅ Service worker cache limpiado');
+      }
+      
+      // Esperar un momento y recargar
+      setTimeout(() => {
+        console.log('🔄 Recargando página...');
+        window.location.reload();
+      }, 500);
+    } catch (e) {
+      console.error('Error durante limpieza:', e);
+      window.location.reload();
+    }
+  };
   if (error)
     return (
       <div className="container" style={{ padding: "20px", textAlign: 'center' }}>
         <p style={{ color: "red", fontWeight: 'bold' }}>{error}</p>
+        <button onClick={manualRefresh} style={{ marginTop: '1rem', backgroundColor: '#3b82f6', color: 'white', padding: '8px 16px', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+          🔄 Limpiar caché e intentar de nuevo
+        </button>
       </div>
     );
 
-  if (grades.length === 0 && !error) {
+  if (loading || grades.length === 0 && !error) {
     // sólo mostramos el mensaje vacío si no hubo error (evitamos sobrescribir
     // el texto de error cuando la API devuelve una lista vacía)
     return (
       <div className="container" style={{ padding: "20px", textAlign: 'center' }}>
         <h1>Mis calificaciones</h1>
         <div className="card">
-          <p>No tienes calificaciones registradas aún.</p>
+          <p>{loading ? "Cargando calificaciones..." : "No tienes calificaciones registradas aún."}</p>
+          {!loading && (
+            <button onClick={manualRefresh} style={{ marginTop: '1rem', backgroundColor: '#3b82f6', color: 'white', padding: '8px 16px', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+              🔄 Limpiar caché e intentar de nuevo
+            </button>
+          )}
         </div>
       </div>
     );
