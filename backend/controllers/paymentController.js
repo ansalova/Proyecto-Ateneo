@@ -59,13 +59,42 @@ export const createCheckout = async (req, res) => {
 
     const external_reference = generateReference();
 
-    // Guardar orden inicial en BD
+    // enriquecer metadata con usuario (para poder enviar notificaciones posteriores)
+    const fullMetadata = {
+      ...metadata,
+      user_id: req.user?.id,
+      // preferir email del usuario autenticado, luego metadata o body
+      user_email: req.user?.email || (metadata && metadata.user_email) || req.body?.email
+    };
+
+    // Determinar destinatario del correo (usuario autenticado o email proporcionado)
+    const recipientEmail = req.user?.email || (metadata && metadata.user_email) || req.body?.email || fullMetadata.user_email;
+
+    // Guardar orden inicial en BD (incluyendo email si fue provisto)
     await createOrder({
       external_reference,
       method,
       amount: Number(amount),
-      metadata: metadata || {}
+      metadata: fullMetadata
     });
+
+    // Enviar correo de confirmación al usuario si se tiene un email destinatario
+    let emailSent = false;
+    let emailError = null;
+    if (recipientEmail) {
+      try {
+        console.log('[PAYMENTS] Enviando correo de orden a', recipientEmail);
+        const { sendOrderEmail } = await import('../utils/mailer.js');
+        const info = await sendOrderEmail({ to: recipientEmail, order: { external_reference, amount, method } });
+        emailSent = Boolean(info && (info.accepted?.length || info.messageId));
+        if (!emailSent) {
+          emailError = 'no_accepted';
+        }
+      } catch (e) {
+        console.error('[PAYMENTS] Error enviando correo orden:', e);
+        emailError = e.message || String(e);
+      }
+    }
 
     // ONLINE: Mercado Pago
     if (method === 'tarjeta' || method === 'pse') {
@@ -80,14 +109,14 @@ export const createCheckout = async (req, res) => {
       const preferenceBody = {
         items,
         back_urls: {
-          success: `${FRONTEND_URL}/confirmacion-pago?provider=mp&result=success`,
-          pending: `${FRONTEND_URL}/confirmacion-pago?provider=mp&result=pending`,
-          failure: `${FRONTEND_URL}/confirmacion-pago?provider=mp&result=failure`
+          success: `${FRONTEND_URL}/confirmacion-pago?provider=mp&result=success&reference=${external_reference}`,
+          pending: `${FRONTEND_URL}/confirmacion-pago?provider=mp&result=pending&reference=${external_reference}`,
+          failure: `${FRONTEND_URL}/confirmacion-pago?provider=mp&result=failure&reference=${external_reference}`
         },
         auto_return: 'approved',
         notification_url: `${BACKEND_URL}/api/payments/webhook/mercadopago`,
         external_reference,
-        metadata: { ...metadata, method },
+        metadata: { ...fullMetadata, method },
         payment_methods
       };
 
@@ -103,7 +132,9 @@ export const createCheckout = async (req, res) => {
         provider: 'mercadopago',
         redirectUrl: pref.init_point || pref.sandbox_init_point,
         preferenceId: pref.id,
-        externalReference: external_reference
+        externalReference: external_reference,
+        emailSent,
+        emailError
       });
     }
 
@@ -113,12 +144,12 @@ export const createCheckout = async (req, res) => {
       const instructions = {
         nequi: {
           title: 'Pago por Nequi',
-          account: process.env.NEQUI_NUMBER || '3000000000',
+          account: process.env.NEQUI_NUMBER || '3105757686',
           message: 'Envía el valor exacto y anexa la referencia en la descripción.'
         },
         daviplata: {
           title: 'Pago por Daviplata',
-          account: process.env.DAVIPLATA_NUMBER || '3100000000',
+          account: process.env.DAVIPLATA_NUMBER || '3105757686',
           message: 'Envía el valor exacto y anexa la referencia en la descripción.'
         },
         oficina: {
@@ -132,7 +163,9 @@ export const createCheckout = async (req, res) => {
         provider: 'offline',
         method,
         reference,
-        instructions: instructions[method]
+        instructions: instructions[method],
+        emailSent,
+        emailError
       });
     }
 
@@ -193,6 +226,37 @@ export const receiveWebhookGet = async (req, res) => {
   }
 };
 
+export const getOrders = async (req, res) => {
+  try {
+    const pool = require('../config/db.js').getPool();
+    if (!pool) throw new Error('DB_NOT_CONFIGURED');
+
+    const userId = req.user?.id;
+    const userRole = req.user?.role;
+    let query;
+    let params = [];
+
+    if (userRole === 'admin') {
+      query = `SELECT id, external_reference, amount, method, status, created_at, metadata
+               FROM orders
+               ORDER BY created_at DESC
+               LIMIT 200`;
+    } else {
+      query = `SELECT id, external_reference, amount, method, status, created_at, metadata
+               FROM orders
+               WHERE metadata->>'user_id' = $1
+               ORDER BY created_at DESC`;
+      params = [String(userId)];
+    }
+
+    const { rows } = await pool.query(query, params);
+    res.json(rows);
+  } catch (error) {
+    console.error('getOrders error:', error);
+    res.status(500).json({ error: 'internal_error' });
+  }
+};
+
 export const getOrder = async (req, res) => {
   try {
     const ref = req.params.reference;
@@ -201,6 +265,38 @@ export const getOrder = async (req, res) => {
     res.json(o);
   } catch (error) {
     console.error('getOrder error:', error);
+    res.status(500).json({ error: 'internal_error' });
+  }
+};
+
+// Permite a un administrador actualizar el estado de una orden manualmente
+export const patchOrderStatus = async (req, res) => {
+  try {
+    const ref = req.params.reference;
+    const { status } = req.body || {};
+    if (!status) return res.status(400).json({ error: 'status is required' });
+
+    // Validar estados permitidos
+    const valid = ['pending', 'completed', 'failed'];
+    if (!valid.includes(status)) {
+      return res.status(400).json({ error: 'invalid_status', valid });
+    }
+
+    const updated = await updateOrderStatus(ref, status);
+    if (!updated) return res.status(404).json({ error: 'not_found' });
+
+    // Si tenemos correo en metadata, avisar al usuario
+    const metadata = updated.metadata || {};
+    const email = metadata.user_email;
+    if (email) {
+      import("../utils/mailer.js").then(({ sendOrderStatusEmail }) => {
+        sendOrderStatusEmail({ to: email, order: updated, status }).catch(e => console.error('[PAYMENTS] Error enviando status email:', e));
+      });
+    }
+
+    res.json(updated);
+  } catch (error) {
+    console.error('patchOrderStatus error:', error);
     res.status(500).json({ error: 'internal_error' });
   }
 };

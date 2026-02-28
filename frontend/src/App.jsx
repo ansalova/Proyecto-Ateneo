@@ -5,6 +5,8 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import CartDrawer from "./components/CartDrawer";
+import API from "./services/api";
+import { useEffect, useState } from "react";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Register from "./pages/Register";   // ← asegúrate de tener esta página
@@ -22,10 +24,30 @@ import Anuncios from "./pages/Anuncios";
 import Documentos from "./pages/Documentos";
 import AdminDashboard from "./pages/AdminDashboard";
 import PaymentReport from "./pages/PaymentReport";
+import PaymentHistory from "./pages/PaymentHistory";
 import Messaging from "./pages/Messaging";
 import ContactForm from "./pages/ContactForm";
 import ProtectedRoute from "./components/ProtectedRoute";
 import TeacherRoute from "./components/TeacherRoute";
+
+function BackendStatus() {
+  const [ok, setOk] = useState(true);
+  useEffect(() => {
+    API.get('/api/health')
+      .then(() => setOk(true))
+      .catch((err) => {
+        console.error('Backend health check failed', err);
+        setOk(false);
+      });
+  }, []);
+  if (ok) return null;
+  return (
+    <div style={{ background: '#fee', color: '#900', padding: 10, textAlign: 'center' }}>
+      No se pudo conectar al backend (<strong>{API.defaults.baseURL}</strong>).<br />
+      Ejecuta <code>npm run dev</code> en <code>backend/</code> o ajusta <code>VITE_BACKEND_URL</code>.
+    </div>
+  );
+}
 
 export default function App() {
   return (
@@ -39,6 +61,7 @@ export default function App() {
 
       {/* CONTENIDO PRINCIPAL */}
       <main className="container" style={{ paddingTop: 20 }}>
+        <BackendStatus />
         <Routes>
           {/* Página principal */}
           <Route path="/" element={<Home />} />
@@ -135,6 +158,16 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <PaymentReport />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Historial de pagos de usuario */}
+          <Route
+            path="/mis-pagos"
+            element={
+              <ProtectedRoute>
+                <PaymentHistory />
               </ProtectedRoute>
             }
           />

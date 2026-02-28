@@ -39,6 +39,8 @@ export default function Checkout() {
         studentName: studentName.trim(),
         studentId: studentId.trim(),
         grade: grade.trim(),
+        // `user_email` key is what backend expects for notification
+        user_email: parentEmail.trim(),
         parentEmail: parentEmail.trim(),
         phone: phone.trim() || null,
         items: items.map(i => ({ id: i.id, name: i.name, qty: i.qty, price: i.price, metadata: i.metadata || {} })),

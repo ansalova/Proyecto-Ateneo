@@ -42,7 +42,12 @@ export default function Register() {
         {(role === "teacher" || role === "admin") && (
           <>
             <label>Clave única</label>
-            <input value={inviteCode} onChange={e=>setInviteCode(e.target.value)} placeholder="Ingresa la clave única" style={{ width: "100%", padding: "8px", marginBottom: "10px" }} />
+            <input
+              value={inviteCode}
+              onChange={e=>setInviteCode(e.target.value)}
+              placeholder="Ingresa la clave única"
+              style={{ width: "100%", padding: "8px", marginBottom: "10px" }}
+            />
           </>
         )}
 

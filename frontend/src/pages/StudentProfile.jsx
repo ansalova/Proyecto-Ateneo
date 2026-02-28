@@ -203,7 +203,7 @@ export default function StudentProfile() {
                           console.log("Activando edición para:", s);
                           setEditModes((prev) => ({ ...prev, [s]: true }));
                         }}
-                        style={{ backgroundColor: "#0b63f6", border: "none", display: "flex", alignItems: "center", gap: 6 }}
+                        style={{ backgroundColor: "#374e77", border: "none", display: "flex", alignItems: "center", gap: 6 }}
                       >
                         <Pencil size={16} /> Editar Nota
                       </button>

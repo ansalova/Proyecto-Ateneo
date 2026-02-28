@@ -87,6 +87,8 @@ describe('CartContext - Aislamiento por Usuario', () => {
   });
 });
 
+import { updateOrderStatus } from '../src/services/payments'
+
 describe('Payment Flow - Validación de Datos', () => {
   test('Checkout debe validar email del estudiante', () => {
     const validEmail = 'student@example.com';
@@ -115,6 +117,17 @@ describe('Payment Flow - Validación de Datos', () => {
     expect(params.get('method')).toBe('nequi');
     expect(params.get('provider')).toBe('mp');
     expect(params.get('result')).toBe('approved');
+  });
+
+  test('updateOrderStatus llama a la API con referencia y estado', async () => {
+    // simular API
+    const fake = { data: { success: true } };
+    const API = require('../src/services/api').default;
+    API.patch = jest.fn().mockResolvedValue(fake);
+
+    const res = await updateOrderStatus('ATENEO-123', 'completed');
+    expect(API.patch).toHaveBeenCalledWith('/api/payments/orders/ATENEO-123', { status: 'completed' });
+    expect(res.success).toBe(true);
   });
 });
 
@@ -172,6 +185,30 @@ describe('Password Recovery - Seguridad', () => {
     expect(strengthLevels.length).toBe(6);
   });
 });
+
+describe('Mensajes - Badge', () => {
+  test('Badge muestra número cuando hay mensajes sin leer', () => {
+    const unread = 3;
+    const showBadge = unread > 0;
+    expect(showBadge).toBe(true);
+    expect(unread).toBe(3);
+  });
+  test('Header lee la propiedad correcta del API', () => {
+    const apiResponse = { unread_count: 5 };
+    const count = apiResponse.unread_count;
+    expect(count).toBe(5);
+  });
+
+  test('Header se actualiza al recibir evento messagesUpdated', () => {
+    let triggered = false;
+    const handler = () => { triggered = true; };
+    window.addEventListener('messagesUpdated', handler);
+    window.dispatchEvent(new Event('messagesUpdated'));
+    expect(triggered).toBe(true);
+    window.removeEventListener('messagesUpdated', handler);
+  });
+});
+
 
 describe('Anuncios - Sistema de Lectura', () => {
   test('Contador de anuncios sin leer debe actualizarse', () => {

@@ -1,6 +1,7 @@
 import { useSearchParams, Link, useNavigate } from "react-router-dom";
 import { CheckCircle, Clock, XCircle, Home, MessageSquare } from 'lucide-react';
-import { useEffect } from 'react';
+import { useEffect, useContext } from 'react';
+import { AuthContext } from '../context/AuthContext';
 
 export default function ConfirmacionPago() {
   const [params] = useSearchParams();
@@ -10,11 +11,17 @@ export default function ConfirmacionPago() {
   const result = (params.get("result") || '').toLowerCase();
   const amount = params.get("amount");
 
-  // Para métodos offline
+  // Para métodos offline / mp se puede recibir referencia
   const reference = params.get('reference');
   const title = params.get('title');
   const account = params.get('account');
   const message = params.get('message');
+  const emailSentParam = params.get('emailSent');
+  const emailErrorParam = params.get('emailError');
+  const emailSent = emailSentParam === 'true';
+  const emailError = emailErrorParam || null;
+
+  const { user } = useContext(AuthContext);
 
   const mensajes = {
     tarjeta: "Hemos iniciado tu pago con tarjeta. Si no fuiste redirigido, vuelve a intentar.",
@@ -27,11 +34,11 @@ export default function ConfirmacionPago() {
   const isMercadoPago = provider === 'mp' || provider === 'mercadopago';
 
   const statusConfig = {
-    success: { icon: CheckCircle, color: '#16a34a', label: 'Pago Aprobado', bgColor: '#dcfce7' },
-    approved: { icon: CheckCircle, color: '#16a34a', label: 'Pago Aprobado', bgColor: '#dcfce7' },
-    pending: { icon: Clock, color: '#ca8a04', label: 'Pago Pendiente', bgColor: '#fef3c7' },
-    failure: { icon: XCircle, color: '#dc2626', label: 'Pago Rechazado', bgColor: '#fee2e2' },
-    failed: { icon: XCircle, color: '#dc2626', label: 'Pago Rechazado', bgColor: '#fee2e2' }
+    success: { icon: CheckCircle, color: '#16a34a', label: 'Pago aprobado', bgColor: '#dcfce7' },
+    approved: { icon: CheckCircle, color: '#16a34a', label: 'Pago aprobado', bgColor: '#dcfce7' },
+    pending: { icon: Clock, color: '#ca8a04', label: 'Pago pendiente', bgColor: '#fef3c7' },
+    failure: { icon: XCircle, color: '#dc2626', label: 'Pago rechazado', bgColor: '#fee2e2' },
+    failed: { icon: XCircle, color: '#dc2626', label: 'Pago rechazado', bgColor: '#fee2e2' }
   };
 
   const currentStatus = statusConfig[result] || statusConfig.pending;
@@ -79,7 +86,14 @@ export default function ConfirmacionPago() {
                   ✗ El pago no se pudo procesar. Por favor, intenta nuevamente.
                 </p>
               )}
-              
+
+              {reference && (
+                <div style={{ marginTop: 16, padding: 12, background: 'rgba(255,255,255,0.7)', borderRadius: 6 }}>
+                  <small style={{ opacity: 0.7 }}>Referencia de la orden</small>
+                  <p style={{ margin: '4px 0 0 0', fontFamily: 'monospace', fontWeight: 'bold' }}>{reference}</p>
+                </div>
+              )}
+
               {amount && (
                 <div style={{ 
                   marginTop: 16, 
@@ -91,6 +105,23 @@ export default function ConfirmacionPago() {
                   <p style={{ margin: '4px 0 0 0', fontSize: 20, fontWeight: 'bold' }}>
                     ${parseFloat(amount).toFixed(2)}
                   </p>
+                </div>
+              )}
+
+              {user?.email && (
+                <div style={{ marginTop: 12, fontSize: 14, opacity: 0.8 }}>
+                  {emailSent ? (
+                    <>📧 Correo de confirmación enviado a <strong>{user.email}</strong></>
+                  ) : (
+                    <>⚠️ No se pudo enviar el correo a <strong>{user.email}</strong>{emailError ? `: ${emailError}` : ''}</>
+                  )}
+                </div>
+              )}
+              {reference && (
+                <div style={{ marginTop: 12 }}>
+                  <Link to="/mis-pagos" className="button" style={{ display:'inline-flex', alignItems:'center', gap:6 }}>
+                    Ver mis pagos
+                  </Link>
                 </div>
               )}
             </div>
@@ -105,6 +136,12 @@ export default function ConfirmacionPago() {
                   </p>
                 </div>
               )}
+              {amount && (
+                <div style={{ marginBottom: 12 }}>
+                  <small style={{ opacity: 0.7 }}>Monto:</small>
+                  <p style={{ margin: '4px 0 0 0', fontWeight: 'bold' }}>${parseFloat(amount).toFixed(2)}</p>
+                </div>
+              )}
               {account && (
                 <div style={{ marginBottom: 12 }}>
                   <small style={{ opacity: 0.7 }}>Número:</small>
@@ -114,6 +151,15 @@ export default function ConfirmacionPago() {
                 </div>
               )}
               {message && <p style={{ margin: '12px 0 0 0', fontSize: 14 }}>{message}</p>}
+              {user?.email && (
+                <p style={{ marginTop: 12, fontSize: 13, opacity: 0.8 }}>
+                  {emailSent ? (
+                    <>📧 Se envió un correo a <strong>{user.email}</strong></>
+                  ) : (
+                    <>⚠️ No se pudo enviar el correo a <strong>{user.email}</strong>{emailError ? `: ${emailError}` : ''}</>
+                  )}
+                </p>
+              )}
             </div>
           ) : (
             <p style={{ margin: '12px 0 0 0', opacity: 0.8 }}>
@@ -157,7 +203,7 @@ export default function ConfirmacionPago() {
               color: '#fff'
             }}
           >
-            <Home size={18} /> Volver al Inicio
+            <Home size={18} /> Volver al inicio
           </button>
           
           <button
@@ -172,7 +218,7 @@ export default function ConfirmacionPago() {
               color: '#fff'
             }}
           >
-            <MessageSquare size={18} /> Ver Anuncios
+            <MessageSquare size={18} /> Ver anuncios
           </button>
         </div>
 

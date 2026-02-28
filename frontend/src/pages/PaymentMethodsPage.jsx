@@ -1,6 +1,7 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import PaymentCard from "../components/PaymentCard";
 import { processPayment } from "../services/payments";
+import { showToast } from "../utils/helpers";
 import { useState } from "react";
 import { CreditCard, Landmark, Smartphone, Briefcase, School } from "lucide-react";
 
@@ -25,14 +26,22 @@ export default function PaymentMethodsPage() {
       const res = await processPayment({ amount, metadata, method });
 
       if (res.offline) {
-        // Mostrar confirmación con instrucciones
+        // Mostrar confirmación con instrucciones. Incluir emailSent/emailError para feedback.
         const params = new URLSearchParams({
           method,
           reference: res.reference,
+          amount,
           title: res.instructions?.title || '',
           account: res.instructions?.account || '',
-          message: res.instructions?.message || ''
+          message: res.instructions?.message || '',
+          emailSent: res.emailSent ? 'true' : 'false',
+          emailError: res.emailError || ''
         })
+        // Mostrar toast inmediato con estado de envío de correo
+        if (res.emailSent) showToast('Correo de confirmación enviado al pagador', { type: 'success' });
+        else if (res.emailError) showToast('No se pudo enviar el correo: ' + res.emailError, { type: 'error' });
+        else showToast('Se creó la orden. Revisa tu correo.', { type: 'info' });
+
         navigate(`/confirmacion-pago?${params.toString()}`)
         return;
       }

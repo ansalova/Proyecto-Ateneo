@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import { X } from 'lucide-react'
 
 export default function CartDrawer() {
-  const { items, remove, total, clear } = useContext(CartContext)
+  const { items, remove, total, clear, updateQty } = useContext(CartContext)
   const { isOpen, closeCart } = useCartUI()
   const navigate = useNavigate()
 
@@ -51,7 +51,34 @@ export default function CartDrawer() {
             <div>
               <strong>{i.name}</strong>
               <br />
-              <small>qty: {i.qty}</small>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <button
+                  onClick={() => updateQty(i.id, i.qty - 1)}
+                  disabled={i.qty <= 1}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    cursor: i.qty <= 1 ? 'not-allowed' : 'pointer',
+                    fontSize: 16,
+                    lineHeight: 1
+                  }}
+                >
+                  −
+                </button>
+                <small>Cantidad: {i.qty}</small>
+                <button
+                  onClick={() => updateQty(i.id, i.qty + 1)}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: 16,
+                    lineHeight: 1
+                  }}
+                >
+                  +
+                </button>
+              </div>
             </div>
 
             <button

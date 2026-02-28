@@ -12,10 +12,14 @@ export default [
         document: "readonly",
         console: "readonly",
         setTimeout: "readonly",
+        setInterval: "readonly",
+        clearInterval: "readonly",
         clearTimeout: "readonly",
         localStorage: "readonly",
         navigator: "readonly",
         alert: "readonly",
+        confirm: "readonly",
+        Blob: "readonly",
         URLSearchParams: "readonly"
       }
     },

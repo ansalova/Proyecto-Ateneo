@@ -257,6 +257,37 @@ GET /api/payments/orders
 Authorization: Bearer {token}
 ```
 
+---
+
+### Obtener Estado de una Orden
+
+```http
+GET /api/payments/orders/:reference
+Authorization: Bearer {token}
+```
+
+Devuelve los detalles de la orden particular.
+
+---
+
+### Crear Checkout (Mercado Pago)
+
+```http
+POST /api/payments/checkout
+Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+  "description": "Mensualidad Febrero 2026",
+  "amount": 150
+}
+```
+
+El endpoint acepta los siguientes métodos:
+
+- `tarjeta` y `pse`: generan un checkout en línea con Mercado Pago.
+- `nequi`, `daviplata`, `oficina`: **pagos offline**. El servidor devolverá instrucciones estáticas con el número de cuenta/mercado y una referencia; el destinatario debe enviar el dinero manualmente al número indicado y luego un administrador deberá marcar la orden como completada.
+
 **Response 200:**
 ```json
 [
@@ -296,6 +327,27 @@ Content-Type: application/json
 ---
 
 ## 📊 Admin
+
+### Obtener Estadísticas del Dashboard
+
+> **Administración**
+
+(estas rutas requieren un token de un usuario con rol `admin`)
+
+### Actualizar Estado de una Orden
+
+```http
+PATCH /api/payments/orders/:reference
+Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+  "status": "completed"  # o "pending", "failed"
+}
+```
+
+Permite a un administrador marcar manualmente una orden como pagada o fallida. Se usa típicamente para pagos offline una vez que el dinero se ha recibido.
+
 
 ### Obtener Estadísticas del Dashboard
 

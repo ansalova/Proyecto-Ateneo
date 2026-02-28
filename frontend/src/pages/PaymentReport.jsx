@@ -1,6 +1,7 @@
 import { useContext, useEffect, useState } from 'react'
 import { AuthContext } from '../context/AuthContext'
 import API from '../services/api'
+import { updateOrderStatus } from '../services/payments'
 import { Download, Filter, Calendar } from 'lucide-react'
 
 export default function PaymentReport() {
@@ -226,6 +227,9 @@ export default function PaymentReport() {
                 <th style={{ padding: 12, textAlign: 'left', borderBottom: '1px solid #e5e7eb' }}>Método</th>
                 <th style={{ padding: 12, textAlign: 'left', borderBottom: '1px solid #e5e7eb' }}>Estado</th>
                 <th style={{ padding: 12, textAlign: 'left', borderBottom: '1px solid #e5e7eb' }}>Fecha</th>
+                {user?.role === 'admin' && (
+                  <th style={{ padding: 12, textAlign: 'left', borderBottom: '1px solid #e5e7eb' }}>Acciones</th>
+                )}
               </tr>
             </thead>
             <tbody>
@@ -279,6 +283,26 @@ export default function PaymentReport() {
                     <td style={{ padding: 12 }}>
                       <small>{new Date(payment.created_at).toLocaleDateString('es-CO')}</small>
                     </td>
+                    {user?.role === 'admin' && (
+                      <td style={{ padding: 12 }}>
+                        {payment.status === 'pending' && (
+                          <button
+                            className="button"
+                            style={{ padding: '4px 8px', fontSize: 12, whiteSpace: 'nowrap' }}
+                            onClick={async () => {
+                              try {
+                                await updateOrderStatus(payment.external_reference, 'completed');
+                                fetchReport(filters);
+                              } catch (err) {
+                                console.error('Error marcando como pagado', err);
+                              }
+                            }}
+                          >
+                            Marcar pagado
+                          </button>
+                        )}
+                      </td>
+                    )}
                   </tr>
                 ))
               ) : (

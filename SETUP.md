@@ -99,7 +99,10 @@ ADMIN_SELF_REGISTRATION=false
 - `POST /api/auth/login` - Iniciar sesión
 - `POST /api/payments/checkout` - Crear orden de pago
 - `GET /api/payments/orders/:reference` - Estado de la orden
+- `PATCH /api/payments/orders/:reference` - (admin) Marcar orden como completada o fallida, útil para pagos manuales
 - `POST /api/payments/webhook/mercadopago` - Webhook de MP (automático)
+
+> Para los métodos offline (`nequi`, `daviplata`, `oficina`): el backend devuelve un número de cuenta/telefono y una referencia. El usuario debe transferir el monto manualmente a ese número y luego un administrador usa el endpoint `PATCH` para actualizar el estado de la orden una vez que el dinero haya llegado.
 - `GET /api/health` - Health check
 
 ---

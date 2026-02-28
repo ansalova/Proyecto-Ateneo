@@ -105,7 +105,7 @@ export default function Home() {
 
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, gap: 12, flexWrap: 'wrap' }}>
                     <strong style={{ fontSize: 18 }}>${MENSUALIDAD.price.toLocaleString('es-CO')}</strong>
-                    <button className="button" onClick={() => { handlePay(); setShowServices(false); }}>ensualidad</button>
+                    <button className="button" onClick={() => { handlePay(); setShowServices(false); }}>Mensualidad</button>
                   </div>
                 </div>
               </div>

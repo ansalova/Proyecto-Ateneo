@@ -31,16 +31,24 @@ export default function Header() {
           setUnreadCount(announcementRes.data.unread_count)
           
           const messagesRes = await API.get('/api/messages/unread/count')
-          setUnreadMessages(messagesRes.data.count || 0)
+          // backend returns { unread_count: N }
+          setUnreadMessages(messagesRes.data.unread_count || 0)
         } catch (err) {
           console.error('Error fetching unread data:', err)
         }
       }
       fetchUnreadData()
       
-      // Actualizar cada 30 segundos
-      const interval = setInterval(fetchUnreadData, 30000)
-      return () => clearInterval(interval)
+      // Actualizar cada 10 segundos (más frecuente)
+      const interval = setInterval(fetchUnreadData, 10000)
+      
+      // Escuchar evento personalizado cuando se envían mensajes
+      window.addEventListener('messagesUpdated', fetchUnreadData)
+      
+      return () => {
+        clearInterval(interval)
+        window.removeEventListener('messagesUpdated', fetchUnreadData)
+      }
     }
   }, [user])
 
@@ -100,27 +108,38 @@ export default function Header() {
         </Link>
 
         {user && (
-          <Link to="/mensajes">
-            <button className="button" style={{ display: 'flex', alignItems: 'center', gap: 6, position: 'relative' }}>
+          <Link to="/mensajes" style={{ position: 'relative' }}>
+            <button className="button" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               Mensajes
-              {unreadMessages > 0 && (
-                <span style={{
-                  marginLeft: 4,
-                  backgroundColor: '#ef4444',
-                  color: '#fff',
-                  borderRadius: '50%',
-                  width: 24,
-                  height: 24,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: 12,
-                  fontWeight: 'bold'
-                }}>
-                  {unreadMessages}
-                </span>
-              )}
             </button>
+
+            <span style={{
+                position: 'absolute',
+                top: '-6px',
+                right: '-6px',
+                backgroundColor: '#ef4444',
+                color: '#fff',
+                borderRadius: '50%',
+                width: 28,
+                height: 28,
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 14,
+                fontWeight: 'bold',
+                animation: 'pulse 2s infinite',
+                boxShadow: '0 0 12px rgba(239, 68, 68, 1)',
+                border: '2px solid white',
+                zIndex: 10
+              }}>
+                {unreadMessages}
+              </span>
+            <style>{`
+              @keyframes pulse {
+                0%, 100% { opacity: 1; transform: scale(1); }
+                50% { opacity: 0.8; transform: scale(1.1); }
+              }
+            `}</style>
           </Link>
         )}
 
@@ -131,6 +150,12 @@ export default function Header() {
         >
           Carrito ({items.length})
         </button>
+
+        <Link to="/mis-pagos">
+          <button className="button" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            Mis pagos
+          </button>
+        </Link>
 
         <Link to="/contacto">
           <button className="button" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -152,14 +177,14 @@ export default function Header() {
           
           {(user.role === 'teacher' || user.role === 'admin') ? (
             <Link to="/profesor">
-              <button className="button" style={{ backgroundColor: '#ff9800', display: 'flex', alignItems: 'center', gap: 6 }}>
-                Panel Profesor
+              <button className="button" style={{ backgroundColor: '#064f06', display: 'flex', alignItems: 'center', gap: 6 }}>
+                Panel profesor
               </button>
             </Link>
           ) : (
             <Link to="/mis-notas">
               <button className="button" style={{ backgroundColor: '#4caf50', display: 'flex', alignItems: 'center', gap: 6 }}>
-                Mis Notas
+                Mis notas
               </button>
             </Link>
           )}

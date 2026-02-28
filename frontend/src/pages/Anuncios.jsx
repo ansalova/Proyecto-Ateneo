@@ -2,6 +2,7 @@ import { useContext, useEffect, useState } from 'react'
 import { AuthContext } from '../context/AuthContext'
 import API from '../services/api'
 import { Trash2, Plus, MessageCircle } from 'lucide-react'
+import ConfirmModal from '../components/ConfirmModal'
 
 export default function Anuncios() {
   const { user } = useContext(AuthContext)
@@ -10,6 +11,8 @@ export default function Anuncios() {
   const [error, setError] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [formData, setFormData] = useState({ title: '', content: '' })
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [toDeleteId, setToDeleteId] = useState(null)
 
   useEffect(() => {
     fetchAnnouncements()
@@ -71,9 +74,16 @@ export default function Anuncios() {
   }
 
   const handleDeleteAnnouncement = async (id) => {
-    if (!window.confirm('¿Eliminar este anuncio?')) return
+    setToDeleteId(id)
+    setConfirmOpen(true)
+  }
+
+  const confirmDelete = async () => {
+    if (!toDeleteId) return
     try {
-      await API.delete(`/api/announcements/${id}`)
+      await API.delete(`/api/announcements/${toDeleteId}`)
+      setConfirmOpen(false)
+      setToDeleteId(null)
       fetchAnnouncements()
     } catch (err) {
       setError('Error al eliminar anuncio')
@@ -190,6 +200,13 @@ export default function Anuncios() {
                   </button>
                 )}
               </div>
+                <ConfirmModal
+                  open={confirmOpen}
+                  title="Eliminar anuncio"
+                  message="¿Eliminar este anuncio? Esta acción es irreversible."
+                  onConfirm={confirmDelete}
+                  onCancel={() => { setConfirmOpen(false); setToDeleteId(null) }}
+                />
             </div>
           ))
         )}

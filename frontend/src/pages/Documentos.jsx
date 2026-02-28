@@ -2,6 +2,7 @@ import { useContext, useEffect, useState } from 'react'
 import { AuthContext } from '../context/AuthContext'
 import API from '../services/api'
 import { Download, Trash2, Plus } from 'lucide-react'
+import ConfirmModal from '../components/ConfirmModal'
 
 export default function Documentos() {
   const { user } = useContext(AuthContext)
@@ -15,8 +16,12 @@ export default function Documentos() {
     document_type: 'certificado',
     student_id: '',
     file_url: '',
+    file_content: '',
+    file_name: '',
     is_public: false,
   })
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [toDeleteId, setToDeleteId] = useState(null)
 
   useEffect(() => {
     // Solo cargar documentos si hay usuario autenticado
@@ -61,20 +66,78 @@ export default function Documentos() {
     }
   }
 
+  const base64ToBlob = (dataURL) => {
+    if (!dataURL) return null
+    const parts = dataURL.split(',')
+    const meta = parts[0] // e.g. data:application/pdf;base64
+    const b64 = parts[1]
+    const mimeMatch = meta.match(/data:([^;]+);/)
+    const mime = mimeMatch ? mimeMatch[1] : 'application/octet-stream'
+    const byteChars = atob(b64)
+    const byteNumbers = new Array(byteChars.length)
+    for (let i = 0; i < byteChars.length; i++) {
+      byteNumbers[i] = byteChars.charCodeAt(i)
+    }
+    const byteArray = new Uint8Array(byteNumbers)
+    return new Blob([byteArray], { type: mime })
+  }
+
+  const handleDownload = (doc) => {
+    if (doc.file_url && doc.file_url.startsWith('http')) {
+      window.open(doc.file_url, '_blank')
+      return
+    }
+    if (doc.file_content) {
+      try {
+        const blob = base64ToBlob(doc.file_content)
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        const filename = doc.file_url || doc.file_name || `${doc.title}.bin`
+        a.href = url
+        a.download = filename
+        document.body.appendChild(a)
+        a.click()
+        a.remove()
+        URL.revokeObjectURL(url)
+      } catch (err) {
+        console.error('Error descargando archivo:', err)
+      }
+      return
+    }
+    // Fallback: open file_url if present
+    if (doc.file_url) {
+      window.open(doc.file_url, '_blank')
+    }
+  }
+
   const handleCreateDocument = async (e) => {
     e.preventDefault()
-    if (!formData.title.trim() || !formData.file_url.trim()) {
-      setError('Llena los campos obligatorios')
+    
+    // Validaciones
+    if (!formData.title.trim()) {
+      setError('El título es obligatorio')
+      return
+    }
+    
+    const hasURL = formData.file_url && formData.file_url.trim()
+    const hasFile = formData.file_content && formData.file_content.trim()
+    
+    if (!hasURL && !hasFile) {
+      setError('Debes proporcionar una URL o subir un archivo')
       return
     }
 
     try {
+      // file_content (data URL) will be stored if provided
+      console.log('[DEBUG] Enviando documento:', { title: formData.title, hasURL, hasFile: !!hasFile })
       await API.post('/api/documents', formData)
       setFormData({
         title: '',
         document_type: 'certificado',
         student_id: '',
         file_url: '',
+        file_content: '',
+        file_name: '',
         is_public: false,
       })
       setShowForm(false)
@@ -87,9 +150,16 @@ export default function Documentos() {
   }
 
   const handleDeleteDocument = async (id) => {
-    if (!window.confirm('¿Eliminar este documento?')) return
+    setToDeleteId(id)
+    setConfirmOpen(true)
+  }
+
+  const confirmDelete = async () => {
+    if (!toDeleteId) return
     try {
-      await API.delete(`/api/documents/${id}`)
+      await API.delete(`/api/documents/${toDeleteId}`)
+      setConfirmOpen(false)
+      setToDeleteId(null)
       fetchDocuments()
     } catch (err) {
       setError('Error al eliminar documento')
@@ -175,14 +245,44 @@ export default function Documentos() {
                   ))}
                 </select>
 
-                <label>URL del Documento (link descargable)</label>
+                <label>URL del Documento (link descargable — OPCIONAL)</label>
                 <input
-                  type="url"
+                  type="text"
                   value={formData.file_url}
                   onChange={(e) => setFormData({ ...formData, file_url: e.target.value })}
                   style={{ width: '100%', padding: 8, marginBottom: 12 }}
-                  placeholder="https://example.com/documento.pdf"
+                  placeholder="https://example.com/documento.pdf — deja vacío si subes archivo"
                 />
+
+                <label>O sube un archivo desde tu dispositivo</label>
+                <input
+                  type="file"
+                  onChange={async (e) => {
+                    const f = e.target.files && e.target.files[0]
+                    if (!f) return
+                    try {
+                      const reader = new FileReader()
+                      reader.onload = () => {
+                        const result = reader.result
+                        setFormData((prev) => ({
+                          ...prev,
+                          file_content: result,
+                          file_name: f.name,
+                          file_url: prev.file_url || f.name,
+                        }))
+                      }
+                      reader.readAsDataURL(f)
+                    } catch (err) {
+                      console.error('Error reading file', err)
+                    }
+                  }}
+                  style={{ width: '100%', padding: 8, marginBottom: 12 }}
+                />
+                {formData.file_name && (
+                  <div style={{ marginBottom: 12 }}>
+                    Archivo seleccionado: <strong>{formData.file_name}</strong>
+                  </div>
+                )}
 
                 <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <input
@@ -232,23 +332,22 @@ export default function Documentos() {
                   </small>
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
-                  {doc.file_url && (
-                    <a href={doc.file_url} target="_blank" rel="noreferrer">
-                      <button
-                        style={{
-                          background: '#86efac',
-                          border: 'none',
-                          padding: 8,
-                          borderRadius: 4,
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 4,
-                        }}
-                      >
-                        <Download size={16} /> Descargar
-                      </button>
-                    </a>
+                  {(doc.file_url || doc.file_content) && (
+                    <button
+                      onClick={() => handleDownload(doc)}
+                      style={{
+                        background: '#86efac',
+                        border: 'none',
+                        padding: 8,
+                        borderRadius: 4,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 4,
+                      }}
+                    >
+                      <Download size={16} /> Descargar
+                    </button>
                   )}
                   {user && (user.role === 'admin' || user.role === 'teacher') && (
                     <button

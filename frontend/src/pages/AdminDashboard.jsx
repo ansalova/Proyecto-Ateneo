@@ -2,6 +2,7 @@ import { useContext, useEffect, useState } from 'react'
 import { AuthContext } from '../context/AuthContext'
 import API from '../services/api'
 import { Users, DollarSign, FileText, MessageSquare, TrendingUp, Download } from 'lucide-react'
+import AlertModal from '../components/AlertModal'
 
 export default function AdminDashboard() {
   const { user } = useContext(AuthContext)
@@ -11,6 +12,8 @@ export default function AdminDashboard() {
   const [activity, setActivity] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [showAlert, setShowAlert] = useState(false)
+  const [alertMessage, setAlertMessage] = useState('')
 
   useEffect(() => {
     fetchDashboardData()
@@ -137,7 +140,7 @@ export default function AdminDashboard() {
           <button
             className="button"
             style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}
-            onClick={() => alert('Descargar reporte de pagos')}
+            onClick={() => { setAlertMessage('Descargar reporte de pagos'); setShowAlert(true) }}
           >
             <Download size={16} /> Descargar CSV
           </button>
@@ -220,6 +223,8 @@ export default function AdminDashboard() {
             ))}
         </div>
       </div>
+
+      <AlertModal open={showAlert} title="Descargar" message={alertMessage} onClose={() => setShowAlert(false)} />
     </div>
   )
 }

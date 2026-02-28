@@ -28,11 +28,22 @@ export const register = async (req, res) => {
     let finalRole = "student";
     const requestedRole = (role || "").toLowerCase();
     if (requestedRole === "teacher") {
+      // allow a sensible default when ENV var is missing (development convenience)
+      let teacherCodeRaw = process.env.TEACHER_INVITE_CODE || 'Profesores010';
       if (!process.env.TEACHER_INVITE_CODE) {
-        return res.status(500).json({ msg: "Clave única de profesor no configurada." });
+        console.warn('TEACHER_INVITE_CODE not set, defaulting to Profesores010');
       }
-      if (inviteCode !== process.env.TEACHER_INVITE_CODE) {
-        return res.status(403).json({ msg: "Clave única inválida para profesor." });
+      // normalize developer input/code
+      let teacherCode = teacherCodeRaw.trim().toUpperCase();
+      const provided = (inviteCode || '').trim().toUpperCase();
+      if (provided !== teacherCode) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.warn(`Failed teacher invite code check (provided="${inviteCode}", expected="${teacherCode}")`);
+        }
+        const msg = process.env.NODE_ENV !== 'production'
+          ? `Clave única inválida para profesor (esperaba: ${teacherCodeRaw})` // show raw expected in dev
+          : 'Clave única inválida para profesor.';
+        return res.status(403).json({ msg });
       }
       finalRole = "teacher";
     } else if (requestedRole === "admin") {

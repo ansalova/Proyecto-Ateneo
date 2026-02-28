@@ -12,7 +12,7 @@ export default function Footer() {
       }}
     >
       <div className="container">
-        &copy; {new Date().getFullYear()} Colegio Ateneo — Tienda Oficial
+        &copy; {new Date().getFullYear()} Colegio Ateneo
       </div>
     </footer>
   )

@@ -25,31 +25,38 @@ export default function TeacherDashboard() {
   return (
     <div className="container" style={{ padding: "20px" }}>
       <h1>Panel de profesores</h1>
-      
-      <div className="table-responsive">
-        <h3>Lista de estudiantes</h3>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead>
-            <tr style={{ textAlign: "left", borderBottom: "1px solid #ccc" }}>
-              <th>Nombre</th>
-              <th>Email</th>
-              <th>Rol</th>
-            </tr>
-          </thead>
-          <tbody>
-            {students.map(s => (
-              <tr key={s.id} style={{ borderBottom: "1px solid #eee" }}>
-                <td>
-                  <Link to={`estudiantes/${s.id}`} style={{ textDecoration: "none", color: "#0b63f6", fontWeight: 700 }}>
-                    {s.name}
-                  </Link>
-                </td>
-                <td>{s.email}</td>
-                <td>{s.role}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <p style={{ color: '#64748b', marginBottom: '1rem' }}>Aquí puedes ver todos los alumnos registrados.</p>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(280px,1fr))', gap: '1rem' }}>
+        {students.map(s => (
+          <div
+            key={s.id}
+            style={{
+              backgroundColor: '#ffffff',
+              border: '1px solid #e2e8f0',
+              borderRadius: 8,
+              padding: '16px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+              transition: 'transform 0.2s',
+            }}
+            onMouseEnter={e => (e.currentTarget.style.transform = 'translateY(-3px)')}
+            onMouseLeave={e => (e.currentTarget.style.transform = 'translateY(0)')}
+          >
+            <Link
+              to={`estudiantes/${s.id}`}
+              style={{ textDecoration: 'none', color: '#0b63f6' }}
+            >
+              <h2 style={{ margin: '0 0 8px 0', fontSize: '1.25rem' }}>{s.name}</h2>
+            </Link>
+            <p style={{ margin: '4px 0', color: '#475569' }}><strong>Email:</strong> {s.email}</p>
+            <p style={{ margin: '4px 0', color: '#475569' }}>
+              <strong>Rol:</strong>{' '}
+              <span style={{ textTransform: 'capitalize', backgroundColor: '#f3f4f6', padding: '2px 6px', borderRadius: 4, fontSize: '0.875rem' }}>
+                {s.role}
+              </span>
+            </p>
+          </div>
+        ))}
       </div>
     </div>
   );

@@ -36,3 +36,9 @@ export async function processPayment({ amount, metadata, method = 'tarjeta' }) {
     return { success: true, transactionId: tx, simulated: true }
   }
 }
+
+// Permite a un administrador cambiar el estado de una orden
+export async function updateOrderStatus(reference, status) {
+  const { data } = await API.patch(`/api/payments/orders/${reference}`, { status });
+  return data;
+}
