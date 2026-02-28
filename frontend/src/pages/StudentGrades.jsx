@@ -31,7 +31,13 @@ export default function StudentGrades() {
         if (!Array.isArray(data)) {
           throw new Error("Formato inválido de calificaciones");
         }
-        setGrades(data);
+        // Convertir grades de string a número
+        const gradesWithNumbers = data.map(g => ({
+          ...g,
+          grade: typeof g.grade === 'string' ? parseFloat(g.grade) : g.grade
+        }));
+        console.log("✅ Grades procesadas:", gradesWithNumbers);
+        setGrades(gradesWithNumbers);
       } catch (err) {
         console.error("Error fetching grades:", err);
         // Construir mensaje con prioridad, y detectar fallos de conexión
