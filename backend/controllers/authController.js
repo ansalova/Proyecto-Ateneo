@@ -5,7 +5,7 @@ import { sendResetEmail } from "../utils/mailer.js";
 
 export const register = async (req, res) => {
   try {
-    const { name, email, password, role, inviteCode } = req.body;
+    const { name, email, password, role, inviteCode, document_type } = req.body;
 
     if (!name || !email || !password) {
       return res.status(400).json({ msg: "Por favor complete todos los campos" });
@@ -63,7 +63,7 @@ export const register = async (req, res) => {
       finalRole = "admin";
     }
 
-    await createUser({ name, email, password: hashedPassword, role: finalRole });
+    await createUser({ name, email, password: hashedPassword, role: finalRole, document_type });
 
     res.json({ msg: "Usuario registrado correctamente" });
   } catch (error) {

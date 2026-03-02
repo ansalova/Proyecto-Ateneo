@@ -9,13 +9,14 @@ export default function Register() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState("student");
+  const [documentType, setDocumentType] = useState("cedula_ciudadania");
   const [inviteCode, setInviteCode] = useState("");
   const [msg, setMsg] = useState("");
 
   const submit = async (e) => {
     e.preventDefault();
     setMsg("");
-    const r = await register({ name, email, password, role, inviteCode });
+    const r = await register({ name, email, password, role, documentType, inviteCode });
     if (!r.success) { setMsg(r.message); return; }
     nav("/login");
   };
@@ -31,6 +32,13 @@ export default function Register() {
         <input type="email" value={email} onChange={e=>setEmail(e.target.value)} required />
         <label>Password</label>
         <input type="password" value={password} onChange={e=>setPassword(e.target.value)} required />
+
+        <label>Tipo de Documento</label>
+        <select value={documentType} onChange={e=>setDocumentType(e.target.value)} style={{ width: "100%", padding: "8px", marginBottom: "10px" }}>
+          <option value="cedula_ciudadania">Cédula de Ciudadanía</option>
+          <option value="tarjeta_identidad">Tarjeta de Identidad</option>
+          <option value="cedula_extranjeria">Cédula de Extranjería</option>
+        </select>
 
         <label>Rol</label>
         <select value={role} onChange={e=>setRole(e.target.value)} style={{ width: "100%", padding: "8px", marginBottom: "10px" }}>

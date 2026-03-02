@@ -61,9 +61,9 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const register = async ({ name, email, password, role, inviteCode }) => {
+  const register = async ({ name, email, password, role, documentType, inviteCode }) => {
     try {
-      const { data } = await API.post("/api/auth/register", { name, email, password, role, inviteCode });
+      const { data } = await API.post("/api/auth/register", { name, email, password, role, documentType, inviteCode });
       return { success: true };
     } catch (err) {
       return { success: false, message: err.response?.data?.msg || "No se pudo conectar al servidor." };
