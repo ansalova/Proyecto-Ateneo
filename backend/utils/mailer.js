@@ -204,3 +204,61 @@ export async function sendOrderStatusEmail({ to, order, status }) {
   }
 }
 
+export async function sendPaymentInitEmail({ to, studentName, amount, method, reference }) {
+  try {
+    const t = await getTransport();
+    const from = process.env.SMTP_FROM || "Ateneo <no-reply@ateneo.local>";
+    const subject = `Confirmación: Has iniciado un pago en Ateneo`;
+    
+    const methodNames = {
+      tarjeta: 'Tarjeta de Crédito/Débito',
+      pse: 'PSE',
+      nequi: 'Nequi',
+      daviplata: 'Daviplata',
+      oficina: 'Pago en Secretaría'
+    };
+    
+    const methodDisplay = methodNames[method] || method;
+    
+    const text = `Hola ${studentName},\n\nHas iniciado un pago en el colegio Ateneo.\n\nDetalles del pago:\n- Monto: $${amount.toLocaleString('es-CO')}\n- Método: ${methodDisplay}\n- Referencia: ${reference}\n\nSi no reconoces esta transacción, contáctanos inmediatamente.\n\nGracias.`;
+    
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px;">
+        <h2 style="color: #333;">Confirmación de Pago Iniciado</h2>
+        <p>Hola <strong>${studentName}</strong>,</p>
+        <p>Hemos recibido que has iniciado un pago en el colegio <strong>Ateneo</strong>.</p>
+        
+        <div style="background: #f9fafb; border-left: 4px solid #0b63f6; padding: 15px; margin: 20px 0; border-radius: 4px;">
+          <h3 style="margin: 0 0 10px 0; color: #0b63f6;">Detalles del pago:</h3>
+          <p style="margin: 5px 0;"><strong>Monto:</strong> $${amount.toLocaleString('es-CO')}</p>
+          <p style="margin: 5px 0;"><strong>Método:</strong> ${methodDisplay}</p>
+          <p style="margin: 5px 0;"><strong>Referencia:</strong> <code style="background: #f0f0f0; padding: 2px 6px; border-radius: 3px;">${reference}</code></p>
+        </div>
+        
+        <p style="color: #666; font-size: 14px;">Si no reconoces esta transacción, por favor contáctanos inmediatamente.</p>
+        <p>Gracias,<br><strong>Equipo Ateneo</strong></p>
+      </div>
+    `;
+    
+    console.log(`[MAILER] 📧 Enviando email de inicio de pago a ${to}`);
+    const res = await sendWithRetries(t, { from, to, subject, text, html }, 3);
+    if (res.success) {
+      console.log('[MAILER] ✅ Email de inicio de pago enviado');
+      return res.info;
+    } else {
+      console.error('[MAILER] ❌ No se pudo enviar email de inicio de pago', res.error?.message);
+      appendFailedEmailLog({ 
+        timestamp: new Date().toISOString(), 
+        to, 
+        subject, 
+        error: res.error?.message || String(res.error),
+        type: 'payment_init'
+      });
+      throw res.error || new Error('send_failed');
+    }
+  } catch (err) {
+    console.error('[MAILER] ❌ error enviando email de inicio de pago:', err.message);
+    throw err;
+  }
+}
+

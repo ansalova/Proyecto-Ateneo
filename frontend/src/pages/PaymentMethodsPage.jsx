@@ -4,6 +4,7 @@ import { processPayment } from "../services/payments";
 import { showToast } from "../utils/helpers";
 import { useState } from "react";
 import { CreditCard, Landmark, Smartphone, Briefcase, School } from "lucide-react";
+import API from "../services/api";
 
 export default function PaymentMethodsPage() {
   const navigate = useNavigate();
@@ -25,8 +26,29 @@ export default function PaymentMethodsPage() {
     try {
       const res = await processPayment({ amount, metadata, method });
 
+      // Intentar enviar email de iniciación de pago después de que se creó la orden
+      if (res.success && res.externalReference) {
+        try {
+          const emailResponse = await API.post('/api/payments/send-init-email', {
+            studentName: metadata.studentName || 'Estudiante',
+            amount,
+            method,
+            reference: res.externalReference
+          });
+          
+          if (emailResponse.data?.success) {
+            console.log('✉️ Email de pago iniciado enviado:', emailResponse.data.messageId);
+          } else if (emailResponse.data?.emailError) {
+            console.warn('⚠️ Error enviando email de pago:', emailResponse.data.emailError);
+          }
+        } catch (emailErr) {
+          console.warn('⚠️ No se pudo enviar email de iniciación:', emailErr.message);
+          // No bloquear el flujo de pago por un error de email
+        }
+      }
+
       if (res.offline) {
-        // Mostrar confirmación con instrucciones. Incluir emailSent/emailError para feedback.
+        // Mostrar confirmación con instrucciones
         const params = new URLSearchParams({
           method,
           reference: res.reference,

@@ -300,3 +300,31 @@ export const patchOrderStatus = async (req, res) => {
     res.status(500).json({ error: 'internal_error' });
   }
 };
+
+export const sendPaymentInitEmail = async (req, res) => {
+  try {
+    const { studentName, amount, method, reference } = req.body || {};
+    const to = req.user?.email;
+
+    if (!to) {
+      return res.status(400).json({ error: 'User email not found' });
+    }
+
+    if (!studentName || !amount || !method || !reference) {
+      return res.status(400).json({ error: 'Missing required fields: studentName, amount, method, reference' });
+    }
+
+    const { sendPaymentInitEmail: sendEmail } = await import('../utils/mailer.js');
+    const info = await sendEmail({ to, studentName, amount, method, reference });
+
+    res.json({
+      success: true,
+      message: 'Correo de confirmación de pago enviado',
+      messageId: info?.messageId || info?.accepted?.[0] || 'sent'
+    });
+  } catch (error) {
+    console.error('sendPaymentInitEmail error:', error);
+    res.status(500).json({ error: 'No se pudo enviar el correo de confirmación' });
+  }
+};
+
