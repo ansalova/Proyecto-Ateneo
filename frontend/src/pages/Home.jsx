@@ -21,8 +21,7 @@ export default function Home() {
   const { add } = useContext(CartContext)
   const { user, loading } = useContext(AuthContext)
   const navigate = useNavigate()
-  const [selectedMonth, setSelectedMonth] = useState(MESES[new Date().getMonth()])
-  const [quantity, setQuantity] = useState(1)
+  const [selectedMonths, setSelectedMonths] = useState([])
   const [showServices, setShowServices] = useState(false)
   const [showLoginPrompt, setShowLoginPrompt] = useState(false)
 
@@ -33,10 +32,23 @@ export default function Home() {
     }
   }, [loading, user])
 
+  const toggleMonth = (month) => {
+    setSelectedMonths(prev => 
+      prev.includes(month) 
+        ? prev.filter(m => m !== month)
+        : [...prev, month]
+    )
+  }
+
   const handlePay = () => {
-    for (let i = 0; i < quantity; i++) {
-      add({ ...MENSUALIDAD, metadata: { month: selectedMonth } })
+    if (selectedMonths.length === 0) {
+      alert('Por favor selecciona al menos un mes')
+      return
     }
+    
+    selectedMonths.forEach(month => {
+      add({ ...MENSUALIDAD, metadata: { month } })
+    })
     // Redirigimos al checkout para completar datos del estudiante
     navigate('/checkout')
   }
@@ -88,24 +100,45 @@ export default function Home() {
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', gap: 12, marginTop: 12, flexWrap: 'wrap' }}>
-                    <div style={{ minWidth: 180, flex: 1 }}>
-                      <label>Mes a pagar</label>
-                      <select className="input" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)}>
-                        {MESES.map((m) => (
-                          <option key={m} value={m}>{m}</option>
-                        ))}
-                      </select>
+                  <div style={{ marginTop: 12 }}>
+                    <label style={{ display: 'block', marginBottom: 8 }}>Selecciona los meses a pagar (máximo 1 por mes):</label>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 12 }}>
+                      {MESES.map((month) => (
+                        <button
+                          key={month}
+                          onClick={() => toggleMonth(month)}
+                          style={{
+                            padding: '10px 8px',
+                            border: selectedMonths.includes(month) ? '2px solid #0b63f6' : '2px solid #e2e8f0',
+                            borderRadius: 6,
+                            background: selectedMonths.includes(month) ? '#eef2ff' : '#ffffff',
+                            color: selectedMonths.includes(month) ? '#0b63f6' : '#475569',
+                            fontWeight: selectedMonths.includes(month) ? '600' : '400',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s'
+                          }}
+                        >
+                          {month}
+                        </button>
+                      ))}
                     </div>
-                    <div style={{ width: 140 }}>
-                      <label>Cantidad de meses</label>
-                      <input className="input" type="number" min="1" value={quantity} onChange={(e) => setQuantity(Math.max(1, Number(e.target.value)))} />
-                    </div>
+                    {selectedMonths.length > 0 && (
+                      <div style={{ padding: 8, background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 6, marginBottom: 12, fontSize: '0.9rem', color: '#166534' }}>
+                        ✓ {selectedMonths.length} mes{selectedMonths.length !== 1 ? 'es' : ''} seleccionado{selectedMonths.length !== 1 ? 's' : ''}: {selectedMonths.join(', ')}
+                      </div>
+                    )}
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, gap: 12, flexWrap: 'wrap' }}>
-                    <strong style={{ fontSize: 18 }}>${MENSUALIDAD.price.toLocaleString('es-CO')}</strong>
-                    <button className="button" onClick={() => { handlePay(); setShowServices(false); }}>Mensualidad</button>
+                    <strong style={{ fontSize: 18 }}>${(MENSUALIDAD.price * selectedMonths.length).toLocaleString('es-CO')}</strong>
+                    <button 
+                      className="button" 
+                      onClick={() => { handlePay(); setShowServices(false); }}
+                      disabled={selectedMonths.length === 0}
+                      style={{ opacity: selectedMonths.length === 0 ? 0.5 : 1, cursor: selectedMonths.length === 0 ? 'not-allowed' : 'pointer' }}
+                    >
+                      Mensualidad
+                    </button>
                   </div>
                 </div>
               </div>
@@ -192,24 +225,45 @@ export default function Home() {
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: 12, marginTop: 12, flexWrap: 'wrap' }}>
-              <div style={{ minWidth: 180, flex: 1 }}>
-                <label>Mes a pagar</label>
-                <select className="input" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)}>
-                  {MESES.map((m) => (
-                    <option key={m} value={m}>{m}</option>
-                  ))}
-                </select>
+            <div style={{ marginTop: 12 }}>
+              <label style={{ display: 'block', marginBottom: 8 }}>Selecciona los meses a pagar (máximo 1 por mes):</label>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 12 }}>
+                {MESES.map((month) => (
+                  <button
+                    key={month}
+                    onClick={() => toggleMonth(month)}
+                    style={{
+                      padding: '10px 8px',
+                      border: selectedMonths.includes(month) ? '2px solid #0b63f6' : '2px solid #e2e8f0',
+                      borderRadius: 6,
+                      background: selectedMonths.includes(month) ? '#eef2ff' : '#ffffff',
+                      color: selectedMonths.includes(month) ? '#0b63f6' : '#475569',
+                      fontWeight: selectedMonths.includes(month) ? '600' : '400',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    {month}
+                  </button>
+                ))}
               </div>
-              <div style={{ width: 140 }}>
-                <label>Cantidad de meses</label>
-                <input className="input" type="number" min="1" value={quantity} onChange={(e) => setQuantity(Math.max(1, Number(e.target.value)))} />
-              </div>
+              {selectedMonths.length > 0 && (
+                <div style={{ padding: 8, background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 6, marginBottom: 12, fontSize: '0.9rem', color: '#166534' }}>
+                  ✓ {selectedMonths.length} mes{selectedMonths.length !== 1 ? 'es' : ''} seleccionado{selectedMonths.length !== 1 ? 's' : ''}: {selectedMonths.join(', ')}
+                </div>
+              )}
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, gap: 12, flexWrap: 'wrap' }}>
-              <strong style={{ fontSize: 18 }}>${MENSUALIDAD.price.toLocaleString('es-CO')}</strong>
-              <button className="button" onClick={handlePay}>Pagar mensualidad</button>
+              <strong style={{ fontSize: 18 }}>${(MENSUALIDAD.price * selectedMonths.length).toLocaleString('es-CO')}</strong>
+              <button 
+                className="button" 
+                onClick={handlePay}
+                disabled={selectedMonths.length === 0}
+                style={{ opacity: selectedMonths.length === 0 ? 0.5 : 1, cursor: selectedMonths.length === 0 ? 'not-allowed' : 'pointer' }}
+              >
+                Pagar mensualidad
+              </button>
             </div>
           </div>
         </div>
