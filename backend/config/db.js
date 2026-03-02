@@ -81,6 +81,7 @@ const connectDB = async () => {
         password VARCHAR(200) NOT NULL,
         role VARCHAR(30) NOT NULL DEFAULT 'user',
         document_type VARCHAR(50) DEFAULT 'cedula_ciudadania',
+        document_number VARCHAR(50),
         created_at TIMESTAMP DEFAULT NOW(),
         updated_at TIMESTAMP DEFAULT NOW()
       );
@@ -89,6 +90,11 @@ const connectDB = async () => {
     // Agregar columna document_type si no existe (para usuarios existentes)
     await p.query(`
       ALTER TABLE users ADD COLUMN IF NOT EXISTS document_type VARCHAR(50) DEFAULT 'cedula_ciudadania';
+    `);
+
+    // Agregar columna document_number si no existe (para usuarios existentes)
+    await p.query(`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS document_number VARCHAR(50);
     `);
 
     await p.query(`
