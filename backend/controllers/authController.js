@@ -199,3 +199,49 @@ export const resetPassword = async (req, res) => {
     res.status(500).json({ msg: "Error interno del servidor" });
   }
 };
+
+// Devuelve la información del perfil del usuario autenticado
+export const getProfile = async (req, res) => {
+  try {
+    const user = await findById(req.user.id);
+    if (!user) return res.status(404).json({ msg: "Usuario no encontrado" });
+    delete user.password;
+    res.json({ user });
+  } catch (error) {
+    console.error('getProfile error:', error);
+    res.status(500).json({ msg: "Error interno del servidor" });
+  }
+};
+
+// Actualiza algunos campos del perfil; si se envía password se guarda hasheada
+export const updateProfile = async (req, res) => {
+  try {
+    const { name, email, document_type, document_number, password } = req.body;
+    const updates = {};
+    if (name !== undefined) updates.name = name;
+    if (email !== undefined) updates.email = email;
+    if (document_type !== undefined) updates.document_type = document_type;
+    if (document_number !== undefined) updates.document_number = document_number;
+    if (password !== undefined) {
+      if (password.length < 6) {
+        return res.status(400).json({ msg: "La contraseña debe tener al menos 6 caracteres" });
+      }
+      updates.password = await bcrypt.hash(password, 10);
+    }
+
+    // Si se intenta cambiar el email, verificar que no exista otro usuario con el mismo
+    if (updates.email) {
+      const existing = await findByEmail(updates.email);
+      if (existing && existing.id !== req.user.id) {
+        return res.status(400).json({ msg: "El email ya está en uso por otro usuario" });
+      }
+    }
+
+    const updated = await updateUser(req.user.id, updates);
+    if (!updated) return res.status(404).json({ msg: "Usuario no encontrado" });
+    res.json({ msg: "Perfil actualizado", user: updated });
+  } catch (error) {
+    console.error('updateProfile error:', error);
+    res.status(500).json({ msg: "Error interno del servidor" });
+  }
+};

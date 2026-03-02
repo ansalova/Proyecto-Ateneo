@@ -17,6 +17,26 @@ export default function Register() {
   const submit = async (e) => {
     e.preventDefault();
     setMsg("");
+
+    // Validaciones simples en frontend
+    if (!name.trim() || !email.trim() || !password) {
+      setMsg('Por favor completa todos los campos');
+      return;
+    }
+    if (password.length < 6) {
+      setMsg('La contraseña debe tener al menos 6 caracteres');
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setMsg('Email inválido');
+      return;
+    }
+    if (!documentNumber.trim()) {
+      setMsg('Ingresa el número de documento');
+      return;
+    }
+
     const r = await register({ name, email, password, role, documentType, documentNumber, inviteCode });
     if (!r.success) { setMsg(r.message); return; }
     nav("/login");

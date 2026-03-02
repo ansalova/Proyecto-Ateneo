@@ -70,6 +70,20 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const updateProfile = async (updates) => {
+    try {
+      const { data } = await API.patch('/api/auth/profile', updates);
+      if (data.user) {
+        // update local storage and context user
+        localStorage.setItem('user', JSON.stringify(data.user));
+        setUser(data.user);
+      }
+      return { success: true, msg: data.msg };
+    } catch (err) {
+      return { success: false, message: err.response?.data?.msg || 'Error actualizando perfil' };
+    }
+  };
+
   const logout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
@@ -78,7 +92,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, register, updateProfile, logout }}>
       {children}
     </AuthContext.Provider>
   );

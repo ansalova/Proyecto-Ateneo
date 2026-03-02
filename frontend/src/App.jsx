@@ -20,6 +20,7 @@ import Dashboard from "./pages/Dashboard";
 import TeacherDashboard from "./pages/TeacherDashboard";
 import StudentProfile from "./pages/StudentProfile";
 import StudentGrades from "./pages/StudentGrades";
+import Profile from "./pages/Profile";
 import Anuncios from "./pages/Anuncios";
 import Documentos from "./pages/Documentos";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -80,6 +81,18 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <StudentGrades />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Perfil de usuario */}
+          <Route
+            path="/perfil"
+            element={
+              <ProtectedRoute>
+                <React.Suspense fallback={<div>Cargando...</div>}>
+                  <Profile />
+                </React.Suspense>
               </ProtectedRoute>
             }
           />

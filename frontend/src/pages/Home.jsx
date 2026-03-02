@@ -47,7 +47,11 @@ export default function Home() {
     }
     
     selectedMonths.forEach(month => {
-      add({ ...MENSUALIDAD, metadata: { month } })
+      add({ 
+        ...MENSUALIDAD, 
+        id: `${MENSUALIDAD.id}_${month}`,
+        metadata: { month } 
+      })
     })
     // Redirigimos al checkout para completar datos del estudiante
     navigate('/checkout')

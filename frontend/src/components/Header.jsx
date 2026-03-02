@@ -222,6 +222,26 @@ export default function Header() {
                 </div>
 
                 <div style={{ borderTop: '1px solid #333', padding: '8px 0' }}>
+                  <Link to="/perfil">
+                    <button
+                      style={{
+                        width: '100%',
+                        padding: '12px 16px',
+                        background: 'none',
+                        border: 'none',
+                        color: '#fff',
+                        textAlign: 'left',
+                        cursor: 'pointer',
+                        fontSize: 14,
+                        fontWeight: 500
+                      }}
+                      onClick={() => setUserMenuOpen(false)}
+                    >
+                      Perfil
+                    </button>
+                  </Link>
+                </div>
+                <div style={{ borderTop: '1px solid #333', padding: '8px 0' }}>
                   <button
                     style={{
                       width: '100%',
