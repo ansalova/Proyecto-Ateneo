@@ -82,9 +82,15 @@ const connectDB = async () => {
         role VARCHAR(30) NOT NULL DEFAULT 'user',
         document_type VARCHAR(50) DEFAULT 'cedula_ciudadania',
         document_number VARCHAR(50),
+        verified BOOLEAN NOT NULL DEFAULT false,
         created_at TIMESTAMP DEFAULT NOW(),
         updated_at TIMESTAMP DEFAULT NOW()
       );
+    `);
+
+    // Agregar columna verified si no existe
+    await p.query(`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS verified BOOLEAN NOT NULL DEFAULT false;
     `);
 
     // Agregar columna document_type si no existe (para usuarios existentes)

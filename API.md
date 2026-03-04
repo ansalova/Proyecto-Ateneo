@@ -28,9 +28,11 @@ Content-Type: application/json
 **Response 200:**
 ```json
 {
-  "msg": "Usuario registrado correctamente"
+  "msg": "Usuario registrado correctamente. Revisa tu correo para verificar la cuenta."
 }
 ```
+
+> Después del registro se envía automáticamente un correo con un enlace de verificación.
 
 ---
 
@@ -55,10 +57,40 @@ Content-Type: application/json
     "id": 1,
     "name": "Juan Pérez",
     "email": "juan@example.com",
-    "role": "student"
+    "role": "student",
+    "verified": false    // false hasta que confirme el email
   }
 }
 ```
+
+> _Nota_: si el campo `verified` es `false`, el frontend muestra un recordatorio para verificar el correo y permite reenviar el enlace desde el perfil.
+
+### Verificación de Email
+
+Después del registro se envía un link al correo. **Para mayor robustez el enlace ahora apunta directamente al backend**, de modo que no es necesario tener el frontend levantado; el servidor marca la cuenta como verificada y redirige al usuario al login.
+
+```http
+GET /api/auth/verify-email?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+- **Respuesta**: redirección al frontend (`/login?verified=1`) o un error si el token es inválido/expirado.
+
+El frontend también dispone de una ruta `/verify-email` que puede usarse si se prefiere manejar la validación desde el cliente; ambos enfoques son compatibles.
+
+### Reenviar Enlace de Verificación
+
+Permite que un usuario autenticado vuelva a recibir el email de verificación.
+
+```http
+POST /api/auth/resend-verification
+Authorization: Bearer {token}
+```
+
+**Response 200:**
+```json
+{ "msg": "Enlace de verificación reenviado" }
+```
+
 
 ---
 

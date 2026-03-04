@@ -12,6 +12,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";   // ← asegúrate de tener esta página
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
+import VerifyEmail from "./pages/VerifyEmail";
 import Carrito from "./pages/Carrito";
 import Checkout from "./pages/Checkout";
 import PaymentMethodsPage from "./pages/PaymentMethodsPage";
@@ -72,6 +73,7 @@ export default function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/verify-email" element={<VerifyEmail />} />
 
           {/* Carrito */}
           <Route path="/carrito" element={<Carrito />} />

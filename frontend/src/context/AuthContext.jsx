@@ -44,7 +44,7 @@ export function AuthProvider({ children }) {
       localStorage.setItem("user", JSON.stringify(data.user));
       API.defaults.headers.common["Authorization"] = `Bearer ${data.token}`;
       setUser(data.user);
-      return { success: true };
+      return { success: true, user: data.user };
     } catch (err) {
       console.error('Login error:', err);
       
@@ -78,7 +78,7 @@ export function AuthProvider({ children }) {
         localStorage.setItem('user', JSON.stringify(data.user));
         setUser(data.user);
       }
-      return { success: true, msg: data.msg };
+      return { success: true, msg: data.msg, user: data.user };
     } catch (err) {
       return { success: false, message: err.response?.data?.msg || 'Error actualizando perfil' };
     }

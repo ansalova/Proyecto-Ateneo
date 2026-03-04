@@ -1,4 +1,4 @@
-import { findByEmail, createUser, countAdmins, updatePassword, findById } from "../models/User.js";
+import { findByEmail, createUser, countAdmins, updatePassword, findById, updateUser } from "../models/User.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { sendResetEmail } from "../utils/mailer.js";
@@ -63,9 +63,22 @@ export const register = async (req, res) => {
       finalRole = "admin";
     }
 
-    await createUser({ name, email, password: hashedPassword, role: finalRole, document_type, document_number });
+    const newUser = await createUser({ name, email, password: hashedPassword, role: finalRole, document_type, document_number });
 
-    res.json({ msg: "Usuario registrado correctamente" });
+    // generar token de verificación (1 día)
+    const verifyToken = jwt.sign({ id: newUser.id, email: newUser.email, type: 'verify_email' }, process.env.JWT_SECRET, { expiresIn: '24h' });
+    const backendUrl = process.env.BACKEND_URL || 'http://localhost:5000';
+    const verifyLink = `${backendUrl}/api/auth/verify-email?token=${verifyToken}`;
+
+    try {
+      const { sendVerificationEmail } = await import('../utils/mailer.js');
+      await sendVerificationEmail({ to: newUser.email, link: verifyLink });
+      console.log('[AUTH] Email de verificación enviado a', newUser.email);
+    } catch (emailErr) {
+      console.error('[AUTH] Error enviando email de verificación:', emailErr.message);
+    }
+
+    res.json({ msg: "Usuario registrado correctamente. Revisa tu correo para verificar la cuenta." });
   } catch (error) {
     if (error.message === "DB_NOT_CONFIGURED") {
       return res.status(500).json({ msg: "Base de datos no configurada. Configure PostgreSQL (DATABASE_URL) e intente nuevamente." });
@@ -86,10 +99,11 @@ export const login = async (req, res) => {
 
     const token = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, { expiresIn: "7d" });
 
+    // include verified flag so frontend can warn/resend
     res.json({
       msg: "Login exitoso",
       token,
-      user: { id: user.id, name: user.name, email: user.email, role: user.role }
+      user: { id: user.id, name: user.name, email: user.email, role: user.role, verified: user.verified }
     });
   } catch (error) {
     if (error.message === "DB_NOT_CONFIGURED") {
@@ -200,13 +214,39 @@ export const resetPassword = async (req, res) => {
   }
 };
 
+// Verificar correo a través de token en query
+export const verifyEmail = async (req, res) => {
+  try {
+    const { token } = req.query;
+    if (!token) return res.status(400).send('Token de verificación requerido');
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (err) {
+      return res.status(400).send('Token inválido o expirado');
+    }
+    if (decoded.type !== 'verify_email') {
+      return res.status(400).send('Token de verificación inválido');
+    }
+    // marcar usuario como verificado
+    await updateUser(decoded.id, { verified: true });
+    // redirigir o proveer mensaje
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    return res.redirect(`${frontendUrl}/login?verified=1`);
+  } catch (err) {
+    console.error('verifyEmail error:', err);
+    return res.status(500).send('Error interno');
+  }
+};
+
 // Devuelve la información del perfil del usuario autenticado
 export const getProfile = async (req, res) => {
   try {
     const user = await findById(req.user.id);
     if (!user) return res.status(404).json({ msg: "Usuario no encontrado" });
+    // ensure password removed if present and include verified flag
     delete user.password;
-    res.json({ user });
+    res.json({ user: { ...user, verified: user.verified } });
   } catch (error) {
     console.error('getProfile error:', error);
     res.status(500).json({ msg: "Error interno del servidor" });
@@ -214,6 +254,31 @@ export const getProfile = async (req, res) => {
 };
 
 // Actualiza algunos campos del perfil; si se envía password se guarda hasheada
+export const resendVerification = async (req, res) => {
+  try {
+    const user = await findById(req.user.id);
+    if (!user) return res.status(404).json({ msg: "Usuario no encontrado" });
+    if (user.verified) {
+      return res.status(400).json({ msg: "La cuenta ya está verificada" });
+    }
+    const verifyToken = jwt.sign({ id: user.id, email: user.email, type: 'verify_email' }, process.env.JWT_SECRET, { expiresIn: '24h' });
+    const backendUrl = process.env.BACKEND_URL || 'http://localhost:5000';
+    const verifyLink = `${backendUrl}/api/auth/verify-email?token=${verifyToken}`;
+    try {
+      const { sendVerificationEmail } = await import('../utils/mailer.js');
+      await sendVerificationEmail({ to: user.email, link: verifyLink });
+      console.log('[AUTH] Email de verificación re-enviado a', user.email);
+    } catch (emailErr) {
+      console.error('[AUTH] Error re-enviando email de verificación:', emailErr.message);
+      // we don't fail the request on email error; still return success
+    }
+    res.json({ msg: "Enlace de verificación reenviado" });
+  } catch (error) {
+    console.error('resendVerification error:', error);
+    res.status(500).json({ msg: "Error interno del servidor" });
+  }
+};
+
 export const updateProfile = async (req, res) => {
   try {
     const { name, email, document_type, document_number, password } = req.body;
@@ -230,16 +295,38 @@ export const updateProfile = async (req, res) => {
     }
 
     // Si se intenta cambiar el email, verificar que no exista otro usuario con el mismo
+    let emailChanged = false;
     if (updates.email) {
       const existing = await findByEmail(updates.email);
       if (existing && existing.id !== req.user.id) {
         return res.status(400).json({ msg: "El email ya está en uso por otro usuario" });
       }
+      emailChanged = true;
+      // invalidate verification flag
+      updates.verified = false;
     }
 
     const updated = await updateUser(req.user.id, updates);
+
+    // si cambiamos email, reenviar verificación automáticamente
+    if (emailChanged && updated) {
+      try {
+        const verifyToken = jwt.sign({ id: updated.id, email: updated.email, type: 'verify_email' }, process.env.JWT_SECRET, { expiresIn: '24h' });
+        const backendUrl = process.env.BACKEND_URL || 'http://localhost:5000';
+        const verifyLink = `${backendUrl}/api/auth/verify-email?token=${verifyToken}`;
+        const { sendVerificationEmail } = await import('../utils/mailer.js');
+        await sendVerificationEmail({ to: updated.email, link: verifyLink });
+      } catch (emailErr) {
+        console.error('[AUTH] Error enviando email de verificación tras cambio de email:', emailErr.message);
+      }
+    }
+
+    let responseMsg = "Perfil actualizado";
+    if (emailChanged) {
+      responseMsg = "Perfil actualizado. Revisa tu correo para verificar el nuevo email.";
+    }
     if (!updated) return res.status(404).json({ msg: "Usuario no encontrado" });
-    res.json({ msg: "Perfil actualizado", user: updated });
+    res.json({ msg: responseMsg, user: updated });
   } catch (error) {
     console.error('updateProfile error:', error);
     res.status(500).json({ msg: "Error interno del servidor" });

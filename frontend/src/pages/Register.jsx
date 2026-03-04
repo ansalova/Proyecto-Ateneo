@@ -39,7 +39,8 @@ export default function Register() {
 
     const r = await register({ name, email, password, role, documentType, documentNumber, inviteCode });
     if (!r.success) { setMsg(r.message); return; }
-    nav("/login");
+    // indicar al login que se registró para mostrar aviso de verificar email
+    nav("/login?registered=1");
   };
 
   return (

@@ -1,10 +1,14 @@
 import React, { useState, useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 
 export default function Login() {
   const { login } = useContext(AuthContext);
   const nav = useNavigate();
+
+  const [searchParams] = useSearchParams();
+  const justVerified = searchParams.get('verified');
+  const justRegistered = searchParams.get('registered');
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -21,6 +25,13 @@ export default function Login() {
       return;
     }
 
+    // if account not verified, send user to perfil to resend
+    if (result.user && result.user.verified === false) {
+      setErrorMsg("Tu cuenta aún no está verificada. Por favor revisa tu email.");
+      nav("/perfil");
+      return;
+    }
+
     nav("/");
   };
 
@@ -28,6 +39,16 @@ export default function Login() {
     <div className="card" style={{ maxWidth: 420, margin: "0 auto" }}>
       <h2>Iniciar sesión</h2>
 
+      {justRegistered && (
+        <p style={{ color: "green", fontWeight: "bold" }}>
+          Registro exitoso. Revisa tu correo para verificar tu cuenta.
+        </p>
+      )}
+      {justVerified && (
+        <p style={{ color: "green", fontWeight: "bold" }}>
+          Cuenta verificada correctamente. Puedes iniciar sesión.
+        </p>
+      )}
       {errorMsg && (
         <p style={{ color: "red", fontWeight: "bold" }}>{errorMsg}</p>
       )}

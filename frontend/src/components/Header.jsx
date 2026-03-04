@@ -164,6 +164,13 @@ export default function Header() {
         </Link>
       </div>
 
+      {/* verificación pendiente */}
+      {user && user.verified === false && (
+        <div style={{ width: '100%', background: '#fef3c7', padding: 8, textAlign: 'center', color: '#92400e', fontSize: 14 }}>
+          Tu cuenta no ha sido verificada. <Link to="/perfil" style={{ textDecoration: 'underline', color: '#2563eb' }}>Haz clic aquí</Link> para reenviar el correo.
+        </div>
+      )}
+
       {/* MENÚ DE USUARIO */}
       {user ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>

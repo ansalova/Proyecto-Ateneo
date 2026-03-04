@@ -115,6 +115,44 @@ export async function sendResetEmail({ to, link }) {
   }
 }
 
+// email de verificación de cuenta nueva
+export async function sendVerificationEmail({ to, link }) {
+  try {
+    const t = await getTransport();
+    const from = process.env.SMTP_FROM || "Ateneo <no-reply@ateneo.local>";
+    console.log(`[MAILER] 📧 Preparando email de verificación para: ${to}`);
+    const info = await t.sendMail({
+      from,
+      to,
+      subject: "Verifica tu correo electrónico - Ateneo",
+      text: `Hola,\n\nGracias por registrarte en Ateneo.\nPor favor verifica tu correo haciendo clic en el siguiente enlace:\n\n${link}\n\nEste enlace expirará en 24 horas.\n\nSi no realizaste este registro, puedes ignorar este mensaje.\n`,
+      html: `
+        <html>
+          <body style="font-family: Arial, sans-serif; background: #f5f5f5; padding: 20px;">
+            <div style="max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px;">
+              <h2 style="color: #333; margin-top: 0;">Verificación de Correo</h2>
+              <p style="color: #666; line-height: 1.6;">Hola,</p>
+              <p style="color: #666; line-height: 1.6;">Gracias por registrarte en el portal de Ateneo. Para completar tu registro, por favor verifica tu dirección de correo electrónico haciendo clic en el enlace a continuación:</p>
+              <div style="text-align: center; margin: 30px 0;">
+                <a href="${link}" style="background: #2563eb; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">Verificar Correo</a>
+              </div>
+              <p style="color: #999; font-size: 12px;">Si no funcionó el botón, copia este enlace en tu navegador:<br/><code style="background: #f0f0f0; padding: 2px 6px; border-radius: 3px;">${link}</code></p>
+              <p style="color: #999; font-size: 12px;">Este enlace expirará en 24 horas.</p>
+              <p style="color: #999; font-size: 12px;">Si no realizaste este registro, puedes ignorar este mensaje.</p>
+            </div>
+          </body>
+        </html>
+      `
+    });
+    console.log(`[MAILER] ✅ Email de verificación preparado`);
+    console.log(`[MAILER] 🔗 Link de verificación: ${link}`);
+    return { messageId: info.messageId, previewUrl: link };
+  } catch (error) {
+    console.error('[MAILER] ❌ Error preparando email de verificación:', error.message);
+    throw error;
+  }
+}
+
 // --------------------------------------------------
 // Emails relacionados con órdenes de pago
 // --------------------------------------------------

@@ -4,7 +4,7 @@ export const findByEmail = async (email) => {
   const pool = getPool();
   if (!pool) throw new Error("DB_NOT_CONFIGURED");
   const { rows } = await pool.query(
-    "SELECT id, name, email, password, role, document_type, document_number FROM users WHERE email = $1 LIMIT 1",
+    "SELECT id, name, email, password, role, document_type, document_number, verified FROM users WHERE email = $1 LIMIT 1",
     [email]
   );
   return rows[0] || null;
@@ -14,8 +14,8 @@ export const createUser = async ({ name, email, password, role, document_type, d
   const pool = getPool();
   if (!pool) throw new Error("DB_NOT_CONFIGURED");
   const { rows } = await pool.query(
-    "INSERT INTO users (name, email, password, role, document_type, document_number) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, name, email, role, document_type, document_number",
-    [name, email, password, role || "user", document_type || "cedula_ciudadania", document_number || null]
+    "INSERT INTO users (name, email, password, role, document_type, document_number, verified) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, name, email, role, document_type, document_number, verified",
+    [name, email, password, role || "user", document_type || "cedula_ciudadania", document_number || null, false]
   );
   return rows[0];
 };
@@ -59,7 +59,7 @@ export const updatePassword = async (id, hashedPassword) => {
 };
 
 // actualiza datos del usuario; si se proporciona password ya debe estar hasheada
-export const updateUser = async (id, { name, email, document_type, document_number, password }) => {
+export const updateUser = async (id, { name, email, document_type, document_number, password, verified }) => {
   const pool = getPool();
   if (!pool) throw new Error("DB_NOT_CONFIGURED");
 
@@ -87,18 +87,22 @@ export const updateUser = async (id, { name, email, document_type, document_numb
     fields.push(`password = $${idx++}`);
     values.push(password);
   }
+  if (verified !== undefined) {
+    fields.push(`verified = $${idx++}`);
+    values.push(verified);
+  }
 
   if (fields.length === 0) {
     // nothing to update
     const { rows } = await pool.query(
-      "SELECT id, name, email, role, document_type, document_number FROM users WHERE id = $1",
+      "SELECT id, name, email, role, document_type, document_number, verified FROM users WHERE id = $1",
       [id]
     );
     return rows[0] || null;
   }
 
   values.push(id); // last param
-  const query = `UPDATE users SET ${fields.join(", ")}, updated_at = NOW() WHERE id = $${idx} RETURNING id, name, email, role, document_type, document_number`;
+  const query = `UPDATE users SET ${fields.join(", ")}, updated_at = NOW() WHERE id = $${idx} RETURNING id, name, email, role, document_type, document_number, verified`;
   const { rows } = await pool.query(query, values);
   return rows[0] || null;
 };

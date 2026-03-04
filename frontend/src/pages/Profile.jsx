@@ -12,6 +12,8 @@ export default function Profile() {
     documentNumber: "",
     password: ""
   });
+  const [verified, setVerified] = useState(true);
+  const [resendMsg, setResendMsg] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -20,6 +22,7 @@ export default function Profile() {
       try {
         const { data } = await API.get('/api/auth/profile');
         const u = data.user;
+        setVerified(u.verified);
         setForm({
           name: u.name || "",
           email: u.email || "",
@@ -58,6 +61,9 @@ export default function Profile() {
     if (res.success) {
       showToast('Perfil actualizado', { type: 'success' });
       setForm(prev => ({ ...prev, password: '' }));
+      if (res.user && res.user.verified !== undefined) {
+        setVerified(res.user.verified);
+      }
     } else {
       setError(res.message || 'Error actualizando perfil');
     }
@@ -75,6 +81,29 @@ export default function Profile() {
 
         <label>Email</label>
         <input className="input" type="email" name="email" value={form.email} onChange={handleChange} required />
+
+        {verified ? (
+          <div style={{ marginBottom: 12, padding: 10, background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: 6, color: '#065f46' }}>
+            ✅ Cuenta verificada
+          </div>
+        ) : (
+          <div style={{ marginBottom: 12, padding: 10, background: '#fef3c7', border: '1px solid #fde68a', borderRadius: 6, color: '#92400e' }}>
+            ⚠️ Cuenta **no verificada**. Revisa tu correo o
+            <button
+              onClick={async () => {
+                setResendMsg('');
+                try {
+                  const { data } = await API.post('/api/auth/resend-verification');
+                  setResendMsg(data.msg || 'Correo reenviado');
+                } catch (err) {
+                  setResendMsg(err.response?.data?.msg || 'Error reenviando');
+                }
+              }}
+              style={{ marginLeft: 8, textDecoration: 'underline', background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer' }}
+            >reenviar</button>
+            {resendMsg && <div style={{ marginTop: 6, fontSize: 14 }}>{resendMsg}</div>}
+          </div>
+        )}
 
         <label>Tipo de documento</label>
         <select className="input" name="documentType" value={form.documentType} onChange={handleChange}>

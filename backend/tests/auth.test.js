@@ -9,6 +9,21 @@ const mockCreateUser = jest.fn();
 const mockFindById = jest.fn();
 const mockUpdatePassword = jest.fn();
 const mockCountAdmins = jest.fn();
+const mockUpdateUser = jest.fn();
+
+// apply jest mocks for imported modules
+jest.mock('../models/User.js', () => ({
+  findByEmail: mockFindByEmail,
+  createUser: mockCreateUser,
+  findById: mockFindById,
+  updatePassword: mockUpdatePassword,
+  countAdmins: mockCountAdmins,
+  updateUser: mockUpdateUser
+}));
+
+jest.mock('bcryptjs', () => bcryptMock);
+jest.mock('jsonwebtoken', () => jwtMock);
+jest.mock('../utils/mailer.js', () => ({ sendVerificationEmail: jest.fn(), sendResetEmail: jest.fn() }));
 
 // Mock de bcryptjs
 const bcryptMock = {
@@ -121,6 +136,76 @@ describe('Auth Controller - Routes Críticas', () => {
     // Simulación: el invite code debe ser válido
     expect(userData.inviteCode).toBe('VALID_CODE');
     expect(userData.role).toBe('teacher');
+  });
+
+  test('verifyEmail debería actualizar bandera verified y redirigir', async () => {
+    const mockReq = { query: { token: 'valid_verify_token' } };
+    const mockRes = {
+      redirect: jest.fn(),
+      status: jest.fn().mockReturnThis(),
+      send: jest.fn()
+    };
+
+    // preparar jwt.verify para devolver un payload verify_email
+    jwtMock.verify = jest.fn(() => ({ id: 42, type: 'verify_email' }));
+    mockUpdateUser.mockResolvedValueOnce({ id: 42, verified: true });
+
+    const { verifyEmail } = require('../controllers/authController.js');
+    await verifyEmail(mockReq, mockRes);
+
+    expect(jwtMock.verify).toHaveBeenCalled();
+    expect(mockUpdateUser).toHaveBeenCalledWith(42, { verified: true });
+    expect(mockRes.redirect).toHaveBeenCalled();
+  });
+
+  test('resendVerification debería mandar correo si usuario no verificado', async () => {
+    const mockReq = { user: { id: 8 } };
+    const mockRes = { json: jest.fn(), status: jest.fn().mockReturnThis() };
+    mockFindById.mockResolvedValueOnce({ id: 8, email: 'x@x.com', verified: false });
+    jwtMock.sign = jest.fn(() => 'some_token');
+    const mailer = require('../utils/mailer.js');
+    mailer.sendVerificationEmail = jest.fn();
+
+    const { resendVerification } = require('../controllers/authController.js');
+    await resendVerification(mockReq, mockRes);
+
+    expect(mockRes.json).toHaveBeenCalledWith({ msg: "Enlace de verificación reenviado" });
+    expect(mailer.sendVerificationEmail).toHaveBeenCalled();
+  });
+
+  test('updateProfile cambia verified cuando cambia email y envía nuevo correo', async () => {
+    const mockReq = {
+      user: { id: 9 },
+      body: { email: 'new@example.com' }
+    };
+    const mockRes = { json: jest.fn(), status: jest.fn().mockReturnThis() };
+    mockFindByEmail.mockResolvedValueOnce(null); // no conflict
+    mockUpdateUser.mockResolvedValueOnce({ id: 9, email: 'new@example.com', verified: false });
+    jwtMock.sign = jest.fn(() => 'tok123');
+    const mailer = require('../utils/mailer.js');
+    mailer.sendVerificationEmail = jest.fn();
+
+    const { updateProfile } = require('../controllers/authController.js');
+    await updateProfile(mockReq, mockRes);
+    expect(mockUpdateUser).toHaveBeenCalled();
+    expect(mailer.sendVerificationEmail).toHaveBeenCalled();
+    expect(mockRes.json).toHaveBeenCalledWith({ msg: expect.stringContaining('Revisa tu correo'), user: expect.any(Object) });
+  });
+
+  test('login debe devolver verificado=false para cuentas no verificadas', async () => {
+    mockFindByEmail.mockResolvedValueOnce({ id: 5, email: 'u@x.com', password: 'hashed', role: 'student', verified: false });
+    // simular bcrypt compare true
+    bcryptMock.compare.mockResolvedValueOnce(true);
+
+    const { login } = require('../controllers/authController.js');
+    const req = { body: { email: 'u@x.com', password: 'pwd' } };
+    const res = { status: jest.fn().mockReturnThis(), json: jest.fn() };
+    await login(req, res);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+      msg: 'Login exitoso',
+      token: expect.any(String),
+      user: expect.objectContaining({ verified: false })
+    }));
   });
 });
 
