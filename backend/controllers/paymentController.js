@@ -144,12 +144,12 @@ export const createCheckout = async (req, res) => {
       const instructions = {
         nequi: {
           title: 'Pago por Nequi',
-          account: process.env.NEQUI_NUMBER || '3105757686',
+          account: process.env.NEQUI_NUMBER || '0000000000',
           message: 'Envía el valor exacto y anexa la referencia en la descripción.'
         },
         daviplata: {
           title: 'Pago por Daviplata',
-          account: process.env.DAVIPLATA_NUMBER || '3105757686',
+          account: process.env.DAVIPLATA_NUMBER || '0000000000',
           message: 'Envía el valor exacto y anexa la referencia en la descripción.'
         },
         oficina: {
