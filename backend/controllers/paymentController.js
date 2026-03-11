@@ -1,6 +1,7 @@
 import { MercadoPagoConfig, Preference, Payment } from 'mercadopago';
 import dotenv from 'dotenv';
 import { createOrder, findOrderByReference, updateOrderStatus } from '../models/Order.js';
+import { getPool } from '../config/db.js';
 
 dotenv.config();
 
@@ -23,8 +24,39 @@ if (mpEnabled) {
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:5000';
 
+const MESES = [
+  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+];
+
 function generateReference() {
   return 'ATENEO-' + Date.now();
+}
+
+// Validar que los meses en los items no sean meses pasados
+function validateMonths(items) {
+  if (!Array.isArray(items)) return true; // Sin items, no hay validación
+  
+  const currentMonthIndex = new Date().getMonth();
+  const passedMonths = [];
+  
+  items.forEach(item => {
+    if (item.metadata && item.metadata.month) {
+      const monthIndex = MESES.indexOf(item.metadata.month);
+      if (monthIndex >= 0 && monthIndex < currentMonthIndex) {
+        passedMonths.push(item.metadata.month);
+      }
+    }
+  });
+  
+  if (passedMonths.length > 0) {
+    return {
+      valid: false,
+      message: `No puedes pagar meses que ya han pasado: ${passedMonths.join(', ')}`
+    };
+  }
+  
+  return { valid: true };
 }
 
 function buildItemsFromMetadata(metadata, amount) {
@@ -56,6 +88,12 @@ export const createCheckout = async (req, res) => {
     const { method, amount, metadata } = req.body || {};
     if (!method) return res.status(400).json({ error: 'method is required' });
     if (!amount || Number(amount) <= 0) return res.status(400).json({ error: 'amount must be > 0' });
+
+    // Validar que los meses no sean pasados
+    const monthValidation = validateMonths(metadata?.items);
+    if (!monthValidation.valid) {
+      return res.status(400).json({ error: monthValidation.message });
+    }
 
     const external_reference = generateReference();
 
@@ -139,22 +177,22 @@ export const createCheckout = async (req, res) => {
     }
 
     // OFFLINE
-    if (['nequi', 'daviplata', 'oficina'].includes(method)) {
+    if (['nequi', 'daviplata'].includes(method)) {
       const reference = external_reference;
+      
+      // Prioridad absoluta al número 3103115016 solicitado por el usuario
+      const officialNumber = '3103115016';
+      
       const instructions = {
         nequi: {
           title: 'Pago por Nequi',
-          account: process.env.NEQUI_NUMBER || '0000000000',
+          account: officialNumber,
           message: 'Envía el valor exacto y anexa la referencia en la descripción.'
         },
         daviplata: {
           title: 'Pago por Daviplata',
-          account: process.env.DAVIPLATA_NUMBER || '0000000000',
+          account: officialNumber,
           message: 'Envía el valor exacto y anexa la referencia en la descripción.'
-        },
-        oficina: {
-          title: 'Pago en Secretaría',
-          message: 'Dirígete a la Secretaría del colegio con la referencia generada.'
         }
       };
 
@@ -228,7 +266,7 @@ export const receiveWebhookGet = async (req, res) => {
 
 export const getOrders = async (req, res) => {
   try {
-    const pool = require('../config/db.js').getPool();
+    const pool = getPool();
     if (!pool) throw new Error('DB_NOT_CONFIGURED');
 
     const userId = req.user?.id;
@@ -325,6 +363,65 @@ export const sendPaymentInitEmail = async (req, res) => {
   } catch (error) {
     console.error('sendPaymentInitEmail error:', error);
     res.status(500).json({ error: 'No se pudo enviar el correo de confirmación' });
+  }
+};
+
+// Obtener estado de pagos del usuario actual (qué meses ya están pagados)
+export const getMyPaymentStatus = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Usuario no autenticado' });
+    }
+
+    const pool = getPool();
+    if (!pool) throw new Error('DB_NOT_CONFIGURED');
+
+    // Obtener todos los pagos del usuario que están completados
+    const { rows } = await pool.query(
+      `SELECT id, external_reference, status, metadata, created_at
+       FROM orders
+       WHERE metadata->>'user_id' = $1
+       ORDER BY created_at DESC`,
+      [String(userId)]
+    );
+
+    // Procesar para extraer meses pagados por status
+    const monthStatus = {};
+    const MESES_LIST = [
+      'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+    ];
+
+    // Inicializar todos los meses como sin estado
+    MESES_LIST.forEach(month => {
+      monthStatus[month] = 'none'; // 'none', 'pending', 'completed', 'failed'
+    });
+
+    // Procesar órdenes
+    rows.forEach(order => {
+      try {
+        const meta = typeof order.metadata === 'string' ? JSON.parse(order.metadata) : order.metadata;
+        if (meta.items && Array.isArray(meta.items)) {
+          meta.items.forEach(item => {
+            const month = item.metadata?.month;
+            if (month && MESES_LIST.includes(month)) {
+              // El último status es el más reciente
+              if (monthStatus[month] === 'none') {
+                monthStatus[month] = order.status;
+              }
+            }
+          });
+        }
+      } catch (e) {
+        console.error('Error parsing metadata:', e);
+      }
+    });
+
+    res.json(monthStatus);
+  } catch (error) {
+    console.error('getMyPaymentStatus error:', error);
+    res.status(500).json({ error: 'internal_error' });
   }
 };
 

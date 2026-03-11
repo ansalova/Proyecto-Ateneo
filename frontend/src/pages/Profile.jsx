@@ -10,6 +10,7 @@ export default function Profile() {
     email: "",
     documentType: "cedula_ciudadania",
     documentNumber: "",
+    grade: "",
     password: ""
   });
   const [verified, setVerified] = useState(true);
@@ -28,6 +29,7 @@ export default function Profile() {
           email: u.email || "",
           documentType: u.document_type || "cedula_ciudadania",
           documentNumber: u.document_number || "",
+          grade: u.grade || "",
           password: ""
         });
       } catch (err) {
@@ -53,7 +55,8 @@ export default function Profile() {
       name: form.name,
       email: form.email,
       document_type: form.documentType,
-      document_number: form.documentNumber
+      document_number: form.documentNumber,
+      grade: form.grade
     };
     if (form.password) updates.password = form.password;
 
@@ -82,29 +85,6 @@ export default function Profile() {
         <label>Email</label>
         <input className="input" type="email" name="email" value={form.email} onChange={handleChange} required />
 
-        {verified ? (
-          <div style={{ marginBottom: 12, padding: 10, background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: 6, color: '#065f46' }}>
-            ✅ Cuenta verificada
-          </div>
-        ) : (
-          <div style={{ marginBottom: 12, padding: 10, background: '#fef3c7', border: '1px solid #fde68a', borderRadius: 6, color: '#92400e' }}>
-            ⚠️ Cuenta **no verificada**. Revisa tu correo o
-            <button
-              onClick={async () => {
-                setResendMsg('');
-                try {
-                  const { data } = await API.post('/api/auth/resend-verification');
-                  setResendMsg(data.msg || 'Correo reenviado');
-                } catch (err) {
-                  setResendMsg(err.response?.data?.msg || 'Error reenviando');
-                }
-              }}
-              style={{ marginLeft: 8, textDecoration: 'underline', background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer' }}
-            >reenviar</button>
-            {resendMsg && <div style={{ marginTop: 6, fontSize: 14 }}>{resendMsg}</div>}
-          </div>
-        )}
-
         <label>Tipo de documento</label>
         <select className="input" name="documentType" value={form.documentType} onChange={handleChange}>
           <option value="cedula_ciudadania">Cédula de Ciudadanía</option>
@@ -114,6 +94,18 @@ export default function Profile() {
 
         <label>Número de documento</label>
         <input className="input" name="documentNumber" value={form.documentNumber} onChange={handleChange} />
+
+        {user && user.role === 'student' && (
+          <>
+            <label>Grado</label>
+            <select className="input" name="grade" value={form.grade} onChange={handleChange}>
+              <option value="">Selecciona tu grado</option>
+              <option value="6-7">6° - 7°</option>
+              <option value="8-9">8° - 9°</option>
+              <option value="10-11">10° - 11°</option>
+            </select>
+          </>
+        )}
 
         <label>Nueva contraseña (dejar en blanco para conservar la actual)</label>
         <input className="input" type="password" name="password" value={form.password} onChange={handleChange} />

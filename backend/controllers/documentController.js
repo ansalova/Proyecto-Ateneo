@@ -12,7 +12,7 @@ export const getDocuments = async (req, res) => {
     let params;
 
     if (userRole === 'admin' || userRole === 'teacher') {
-      // Admins y teachers ven todos los documentos, estudiantes solo los suyos
+      // Admins y teachers ven todos los documentos
       query = `SELECT d.id, d.title, d.document_type, d.student_id, d.file_url, 
                       d.created_by, d.created_at, d.is_public,
                       u.name as created_by_name, s.name as student_name
@@ -23,18 +23,25 @@ export const getDocuments = async (req, res) => {
                LIMIT 100`;
       params = [];
     } else {
-      // Estudiantes solo ven sus propios documentos
+      // Estudiantes ven: sus propios documentos + todos los documentos públicos
+      // Intentar múltiples formas de comparar is_public porque puede ser string o boolean
       query = `SELECT d.id, d.title, d.document_type, d.student_id, d.file_url,
                       d.created_by, d.created_at, d.is_public,
-                      u.name as created_by_name
+                      u.name as created_by_name, s.name as student_name
                FROM documents d
                LEFT JOIN users u ON d.created_by = u.id
-               WHERE d.student_id = $1
+               LEFT JOIN users s ON d.student_id = s.id
+               WHERE (d.is_public = true OR CAST(d.is_public as TEXT) IN ('true', 't', '1')) OR d.student_id = $1
                ORDER BY d.created_at DESC`;
       params = [userId];
     }
 
     const { rows } = await pool.query(query, params);
+    
+    if (userRole !== 'admin' && userRole !== 'teacher') {
+      console.log(`📋 Estudiante ${userId} - Encontrados ${rows.length} documentos:`, rows.map(r => ({ id: r.id, title: r.title, is_public: r.is_public, student_id: r.student_id })));
+    }
+    
     res.json(rows);
   } catch (error) {
     console.error('getDocuments error:', error);
@@ -47,24 +54,58 @@ export const createDocument = async (req, res) => {
     const pool = getPool();
     if (!pool) throw new Error('DB_NOT_CONFIGURED');
 
-    const { title, document_type, student_id, file_url, file_content, is_public } = req.body;
+    let { title, document_type, student_id, file_url, is_public } = req.body;
     const userId = req.user.id;
+    const uploadedFile = req.file;
+
+    // Convertir is_public de string a booleano si es necesario
+    if (typeof is_public === 'string') {
+      is_public = is_public === 'true';
+    }
+
+    console.log('🔧 createDocument - Recibidos:', { title, document_type, is_public, uploadedFile: uploadedFile ? uploadedFile.filename : 'NO' });
 
     if (!title || !document_type) {
-      return res.status(400).json({ error: 'title and document_type required' });
+      return res.status(400).json({ msg: 'Título y tipo de documento son requeridos' });
+    }
+
+    let finalFileUrl = file_url;
+
+    // Si se subió un archivo, usar la URL del archivo subido
+    if (uploadedFile) {
+      console.log('✅ Archivo detectado:', uploadedFile.filename);
+      finalFileUrl = `/uploads/${uploadedFile.filename}`;
+    } else {
+      console.log('⚠️ Sin archivo, usando file_url:', file_url);
+    }
+
+    // Validar que exista URL o archivo subido
+    if (!finalFileUrl || !finalFileUrl.trim()) {
+      return res.status(400).json({ msg: 'Debes proporcionar una URL o subir un archivo' });
+    }
+
+    // Validar que sea una URL válida si es URL (y no es una ruta local /uploads/)
+    if (!finalFileUrl.startsWith('/uploads')) {
+      try {
+        new URL(finalFileUrl);
+      } catch {
+        return res.status(400).json({ msg: 'La URL no es válida' });
+      }
     }
 
     const { rows } = await pool.query(
       `INSERT INTO documents (title, document_type, student_id, file_url, file_content, created_by, is_public)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       VALUES ($1, $2, $3, $4, NULL, $5, $6)
        RETURNING *`,
-      [title, document_type, student_id || null, file_url, file_content, userId, is_public || false]
+      [title, document_type, student_id || null, finalFileUrl.trim(), userId, is_public === true]
     );
+    
+    console.log('💾 Documento guardado - ID:', rows[0]?.id, 'is_public en BD:', rows[0]?.is_public, 'tipo:', typeof rows[0]?.is_public);
 
-    res.json({ success: true, document: rows[0] });
+    res.json({ msg: 'Documento creado exitosamente', success: true, document: rows[0] });
   } catch (error) {
     console.error('createDocument error:', error);
-    res.status(500).json({ error: 'internal_error' });
+    res.status(500).json({ msg: 'Error al crear documento. Intenta de nuevo.' });
   }
 };
 

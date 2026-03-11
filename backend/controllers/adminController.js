@@ -76,9 +76,9 @@ export const getPaymentReport = async (req, res) => {
     let query = `
       SELECT o.id, o.external_reference, o.amount, o.status, o.method,
              o.created_at, o.updated_at, o.metadata,
-             u.name, u.email
+             u.id as user_id, u.name, u.email, u.document_number, u.role, u.grade
       FROM orders o
-      LEFT JOIN users u ON o.metadata->>'user_id' = u.id::text
+      LEFT JOIN users u ON CAST(o.metadata->>'user_id' AS INTEGER) = u.id
       WHERE 1=1
     `;
 
@@ -102,6 +102,32 @@ export const getPaymentReport = async (req, res) => {
     query += ` ORDER BY o.created_at DESC`;
 
     const result = await pool.query(query, params);
+
+    // Debug: log primer registro para ver qué datos llegamos
+    if (result.rows.length > 0) {
+      console.log('\n=== 📊 PAYMENT DATA DEBUG ===');
+      console.log('Total payments:', result.rows.length);
+      console.log('\n--- CHECKING JOINS ---');
+      const joinedCount = result.rows.filter(r => r.user_id !== null).length;
+      const nullCount = result.rows.length - joinedCount;
+      console.log('✅ Successful JOINs (user_id found):', joinedCount);
+      console.log('❌ Failed JOINs (user_id is NULL):', nullCount);
+      
+      console.log('\nFirst 3 records:');
+      result.rows.slice(0, 3).forEach((row, idx) => {
+        console.log(`\n  Payment ${idx + 1}:`);
+        console.log(`    external_reference: ${row.external_reference}`);
+        console.log(`    metadata.user_id: ${row.metadata?.user_id || 'N/A'}`);
+        console.log(`    ↓ JOIN result:`);
+        console.log(`    user_id (from users table): ${row.user_id}`);
+        console.log(`    name: ${row.name}`);
+        console.log(`    email: ${row.email}`);
+        console.log(`    document_number: ${row.document_number}`);
+        console.log(`    grade: ${row.grade}`);
+        console.log(`    role: ${row.role}`);
+      });
+      console.log('\n=== END DEBUG ===\n');
+    }
 
     // Calcular resumen
     const summary = {

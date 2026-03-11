@@ -6,24 +6,19 @@ export default function Checkout() {
   const { items, total } = useContext(CartContext)
   const nav = useNavigate()
 
-  const [studentName, setStudentName] = useState('')
-  const [studentId, setStudentId] = useState('')
-  const [grade, setGrade] = useState('')
-  const [userEmail, setUserEmail] = useState('')
-  const [phone, setPhone] = useState('')
+  const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
 
-  // Obtener email del usuario autenticado
+  // Obtener datos del usuario autenticado
   useEffect(() => {
     try {
       const userStr = localStorage.getItem('user')
       if (userStr) {
-        const user = JSON.parse(userStr)
-        setUserEmail(user.email || '')
+        setUser(JSON.parse(userStr))
       }
     } catch (e) {
-      console.error('Error reading user email:', e)
+      console.error('Error reading user:', e)
     }
   }, [])
 
@@ -33,26 +28,16 @@ export default function Checkout() {
       return
     }
 
-    const errors = []
-    if (!studentName || studentName.trim().length < 2) errors.push('Nombre inválido (mín. 2 caracteres)')
-    if (!studentId || studentId.trim().length < 5) errors.push('Identificación inválida')
-    if (!grade || grade.trim().length < 1) errors.push('Grado es obligatorio')
-
-    if (errors.length > 0) {
-      setErrorMsg('Por favor corrija los errores: ' + errors.join(', '))
-      return
-    }
-
     setLoading(true)
     setErrorMsg('')
 
     try {
       const metadata = {
-        studentName: studentName.trim(),
-        studentId: studentId.trim(),
-        grade: grade.trim(),
-        user_email: userEmail,
-        phone: phone.trim() || null,
+        studentName: user?.name || 'Estudiante',
+        studentId: user?.document_number || 'N/A',
+        grade: 'N/A',
+        user_email: user?.email || '',
+        phone: null,
         items: items.map(i => ({ id: i.id, name: i.name, qty: i.qty, price: i.price, metadata: i.metadata || {} })),
         total: total()
       }
@@ -90,24 +75,11 @@ export default function Checkout() {
 
           <hr />
 
-          <h3>Datos del estudiante</h3>
-          <label>Nombre del estudiante</label>
-          <input value={studentName} onChange={e => setStudentName(e.target.value)} style={{ width: '100%', padding: 8, marginBottom: 8 }} />
+          <p style={{ fontWeight: 700, fontSize: '1.2rem' }}>Total a pagar: ${total().toLocaleString('es-CO')}</p>
 
-          <label>Documento (C.C.)</label>
-          <input value={studentId} onChange={e => setStudentId(e.target.value)} style={{ width: '100%', padding: 8, marginBottom: 8 }} />
-
-          <label>Grado</label>
-          <input value={grade} onChange={e => setGrade(e.target.value)} style={{ width: '100%', padding: 8, marginBottom: 8 }} />
-
-          <label>Teléfono (opcional)</label>
-          <input value={phone} onChange={e => setPhone(e.target.value)} style={{ width: '100%', padding: 8, marginBottom: 8 }} />
-
-          <p style={{ fontWeight: 700 }}>Total a pagar: ${total().toLocaleString('es-CO')}</p>
-
-          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-            <button className="button" onClick={goToPaymentMethods} disabled={loading}>
-              {loading ? 'Preparando...' : 'Elegir método de pago'}
+          <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+            <button className="button" onClick={goToPaymentMethods} disabled={loading} style={{ width: '100%', padding: '12px' }}>
+              {loading ? 'Preparando...' : 'Ir a pagar'}
             </button>
           </div>
         </>

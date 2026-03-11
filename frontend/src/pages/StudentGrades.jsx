@@ -121,56 +121,126 @@ export default function StudentGrades() {
     ? validGrades.reduce((sum, g) => sum + g.grade, 0) / validGrades.length
     : 0;
 
+  // Group grades by period
+  const gradesByPeriod = {};
+  grades.forEach(g => {
+    if (!gradesByPeriod[g.period]) {
+      gradesByPeriod[g.period] = [];
+    }
+    gradesByPeriod[g.period].push(g);
+  });
+
+  // Sort periods numerically
+  const sortedPeriods = Object.keys(gradesByPeriod).sort((a, b) => {
+    const numA = parseInt(a.replace(/\D/g, ''), 10);
+    const numB = parseInt(b.replace(/\D/g, ''), 10);
+    return numA - numB;
+  });
+
   return (
     <div className="container" style={{ padding: "20px" }}>
       <h1 style={{ textAlign: "center", marginBottom: 20 }}>Boletín de Calificaciones</h1>
-      <div className="table-responsive" style={{ overflowX: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", marginTop: "20px", fontFamily: 'sans-serif' }}>
-          <thead>
-            <tr style={{ textAlign: "left", borderBottom: "3px solid #444", backgroundColor: "#f3f4f6" }}>
-              <th style={{ padding: "12px 8px" }}>Materia</th>
-              <th style={{ padding: "12px 8px" }}>Periodo</th>
-              <th style={{ padding: "12px 8px" }}>Calificación</th>
-              <th style={{ padding: "12px 8px" }}>Última actualización</th>
-            </tr>
-          </thead>
-          <tbody>
-            {grades.map((g, index) => (
-              <tr
-                key={index}
+      
+      {/* Display each period */}
+      {sortedPeriods.map((period) => {
+        const periodGrades = gradesByPeriod[period];
+        const periodValidGrades = periodGrades.filter(g => typeof g.grade === 'number');
+        const periodAvg = periodValidGrades.length
+          ? periodValidGrades.reduce((sum, g) => sum + g.grade, 0) / periodValidGrades.length
+          : 0;
+
+        return (
+          <div key={period} style={{ marginBottom: "30px" }}>
+            <div
+              style={{
+                backgroundColor: "#1f7a4a",
+                color: "white",
+                padding: "12px 16px",
+                borderRadius: "8px 8px 0 0",
+                fontWeight: "700",
+                fontSize: "18px",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center"
+              }}
+            >
+              <span>{period}</span>
+              <span style={{ fontSize: "16px" }}>
+                Promedio: <strong>{periodAvg.toFixed(2)}</strong>
+              </span>
+            </div>
+            
+            <div className="table-responsive" style={{ overflowX: "auto" }}>
+              <table
                 style={{
-                  backgroundColor: index % 2 === 0 ? '#ffffff' : '#f9fafb',
-                  borderBottom: "1px solid #e5e7eb"
+                  width: "100%",
+                  borderCollapse: "collapse",
+                  fontFamily: 'sans-serif',
+                  borderLeft: "3px solid #1f7a4a",
+                  borderRight: "3px solid #1f7a4a",
+                  borderBottom: "3px solid #1f7a4a"
                 }}
               >
-                <td style={{ padding: "10px 8px", verticalAlign: 'middle' }}>{g.subject}</td>
-                <td style={{ padding: "10px 8px", verticalAlign: 'middle' }}>{g.period}</td>
-                <td
-                  style={{
-                    padding: "10px 8px",
-                    fontWeight: "700",
-                    color: typeof g.grade === 'number' && g.grade >= 3 ? "#10b981" : "#ef4444",
-                    verticalAlign: 'middle'
-                  }}
-                >
-                  {typeof g.grade === 'number' ? g.grade.toFixed(2) : '-'}
-                </td>
-                <td style={{ padding: "10px 8px", verticalAlign: 'middle' }}>
-                  {g.updated_at ? new Date(g.updated_at).toLocaleDateString('es-ES') : '-'}
-                </td>
-              </tr>
-            ))}
-            <tr>
-              <td colSpan={2} style={{ padding: "12px 8px", fontWeight: '700', borderTop: '2px solid #ccc' }}>
-                Promedio general
-              </td>
-              <td style={{ padding: "12px 8px", fontWeight: '700', color: avg >= 3 ? '#10b981' : '#ef4444', borderTop: '2px solid #ccc' }}>
-                {avg.toFixed(2)}
-              </td>
-              <td style={{ borderTop: '2px solid #ccc' }}></td>
-            </tr>
-          </tbody>
-        </table>
+                <thead>
+                  <tr style={{ textAlign: "left", borderBottom: "2px solid #e5e7eb", backgroundColor: "#f3f4f6" }}>
+                    <th style={{ padding: "12px 8px" }}>Materia</th>
+                    <th style={{ padding: "12px 8px" }}>Calificación</th>
+                    <th style={{ padding: "12px 8px" }}>Última actualización</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {periodGrades.map((g, index) => (
+                    <tr
+                      key={index}
+                      style={{
+                        backgroundColor: index % 2 === 0 ? '#ffffff' : '#f9fafb',
+                        borderBottom: "1px solid #e5e7eb"
+                      }}
+                    >
+                      <td style={{ padding: "10px 8px", verticalAlign: 'middle' }}>{g.subject}</td>
+                      <td
+                        style={{
+                          padding: "10px 8px",
+                          fontWeight: "700",
+                          color: typeof g.grade === 'number' && g.grade >= 3 ? "#10b981" : "#ef4444",
+                          verticalAlign: 'middle'
+                        }}
+                      >
+                        {typeof g.grade === 'number' ? g.grade.toFixed(2) : '-'}
+                      </td>
+                      <td style={{ padding: "10px 8px", verticalAlign: 'middle' }}>
+                        {g.updated_at ? new Date(g.updated_at).toLocaleDateString('es-ES') : '-'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        );
+      })}
+
+      {/* Overall average */}
+      <div
+        style={{
+          marginTop: "30px",
+          padding: "20px",
+          backgroundColor: "#f0fdf4",
+          border: "2px solid #1f7a4a",
+          borderRadius: "8px",
+          textAlign: "center"
+        }}
+      >
+        <h2 style={{ color: "#1f7a4a", marginBottom: "10px" }}>Promedio General</h2>
+        <p
+          style={{
+            fontSize: "32px",
+            fontWeight: "700",
+            color: avg >= 3 ? "#10b981" : "#ef4444"
+          }}
+        >
+          {avg.toFixed(2)}
+        </p>
       </div>
     </div>
   );

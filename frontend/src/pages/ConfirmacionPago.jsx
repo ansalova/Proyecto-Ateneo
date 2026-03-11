@@ -117,13 +117,7 @@ export default function ConfirmacionPago() {
                   )}
                 </div>
               )}
-              {reference && (
-                <div style={{ marginTop: 12 }}>
-                  <Link to="/mis-pagos" className="button" style={{ display:'inline-flex', alignItems:'center', gap:6 }}>
-                    Ver mis pagos
-                  </Link>
-                </div>
-              )}
+
             </div>
           ) : reference ? (
             <div style={{ textAlign: 'left', marginTop: 16, background: 'rgba(255,255,255,0.7)', padding: 12, borderRadius: 6 }}>
@@ -166,27 +160,6 @@ export default function ConfirmacionPago() {
               {mensajes[metodo] || "Estado del pago no disponible."}
             </p>
           )}
-        </div>
-
-        {/* Info Cards */}
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: '1fr 1fr', 
-          gap: 12,
-          marginBottom: 24 
-        }}>
-          <div className="card" style={{ textAlign: 'center', padding: 12 }}>
-            <p style={{ margin: 0, fontSize: 12, opacity: 0.7 }}>📧 Correo Confirmación</p>
-            <small style={{ margin: '8px 0 0 0', display: 'block', opacity: 0.6 }}>
-              Revisá tu email
-            </small>
-          </div>
-          <div className="card" style={{ textAlign: 'center', padding: 12 }}>
-            <p style={{ margin: 0, fontSize: 12, opacity: 0.7 }}>📋 Orden Registrada</p>
-            <small style={{ margin: '8px 0 0 0', display: 'block', opacity: 0.6 }}>
-              En tu perfil
-            </small>
-          </div>
         </div>
 
         {/* Action Buttons */}

@@ -2,6 +2,9 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import morgan from "morgan";
+import path from "path";
+import fs from "fs";
+import { fileURLToPath } from "url";
 import connectDB from "./config/db.js";
 import authRoutes from "./routes/authRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
@@ -24,7 +27,7 @@ const extraOrigins = process.env.EXTRA_ORIGINS ? process.env.EXTRA_ORIGINS.split
 
 if (process.env.NODE_ENV === 'production') {
   const allowedOrigins = [frontendUrl, ...extraOrigins];
-  app.use(cors({ origin: allowedOrigins, credentials: true, methods: 'GET,POST,PUT,DELETE' }));
+  app.use(cors({ origin: allowedOrigins, credentials: true, methods: 'GET,POST,PUT,PATCH,DELETE' }));
 } else {
   // Desarrollo: permitir requests desde cualquier localhost origin (5173, 5174, etc.)
   app.use(cors({
@@ -42,13 +45,30 @@ if (process.env.NODE_ENV === 'production') {
       callback(allowed.includes(origin) ? null : new Error('Not allowed by CORS'));
     },
     credentials: true,
-    methods: 'GET,POST,PUT,DELETE'
+    methods: 'GET,POST,PUT,PATCH,DELETE'
   }));
 }
-app.use(express.json());
-app.use(express.urlencoded({ extended: true })); // Para webhooks
+app.use(express.json({ limit: '100mb' }));
+app.use(express.urlencoded({ limit: '100mb', extended: true })); // Para webhooks con archivos
 app.use(morgan("dev"));
 app.set("etag", false);
+
+// Configurar carpeta pública para archivos subidos
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+// La carpeta uploads está en backend/public/uploads
+const uploadsDir = path.join(__dirname, 'public', 'uploads');
+
+// Crear carpeta si no existe
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+  console.log('📁 Carpeta de uploads creada:', uploadsDir);
+} else {
+  console.log('✅ Carpeta de uploads encontrada:', uploadsDir);
+}
+
+console.log('🔗 Sirviendo /uploads desde:', uploadsDir);
+app.use('/uploads', express.static(uploadsDir));
 
 app.use("/api/auth", authRoutes);
 app.use("/api/payments", paymentRoutes);

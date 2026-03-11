@@ -151,25 +151,12 @@ export default function Header() {
           Carrito ({items.length})
         </button>
 
-        <Link to="/mis-pagos">
-          <button className="button" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            Mis pagos
-          </button>
-        </Link>
-
         <Link to="/contacto">
           <button className="button" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             Contacto
           </button>
         </Link>
       </div>
-
-      {/* verificación pendiente */}
-      {user && user.verified === false && (
-        <div style={{ width: '100%', background: '#fef3c7', padding: 8, textAlign: 'center', color: '#92400e', fontSize: 14 }}>
-          Tu cuenta no ha sido verificada. <Link to="/perfil" style={{ textDecoration: 'underline', color: '#2563eb' }}>Haz clic aquí</Link> para reenviar el correo.
-        </div>
-      )}
 
       {/* MENÚ DE USUARIO */}
       {user ? (
@@ -245,6 +232,27 @@ export default function Header() {
                       onClick={() => setUserMenuOpen(false)}
                     >
                       Perfil
+                    </button>
+                  </Link>
+                </div>
+
+                <div style={{ borderTop: '1px solid #333', padding: '8px 0' }}>
+                  <Link to="/mis-pagos">
+                    <button
+                      style={{
+                        width: '100%',
+                        padding: '12px 16px',
+                        background: 'none',
+                        border: 'none',
+                        color: '#fff',
+                        textAlign: 'left',
+                        cursor: 'pointer',
+                        fontSize: 14,
+                        fontWeight: 500
+                      }}
+                      onClick={() => setUserMenuOpen(false)}
+                    >
+                      Mis Pagos
                     </button>
                   </Link>
                 </div>

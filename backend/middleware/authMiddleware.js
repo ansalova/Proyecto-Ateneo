@@ -27,9 +27,20 @@ export const protect = async (req, res, next) => {
 
 export const authorize = (...roles) => {
   return (req, res, next) => {
-    if (!req.user || !roles.includes(req.user.role)) {
-      return res.status(403).json({ msg: `Rol ${req.user ? req.user.role : 'desconocido'} no autorizado para acceder a esta ruta` });
+    console.log('🔐 authorize middleware - Roles requeridos:', roles);
+    console.log('   Usuario:', req.user?.name, 'Rol:', req.user?.role);
+    
+    if (!req.user) {
+      console.error('❌ No hay usuario en req.user');
+      return res.status(403).json({ msg: 'Usuario no encontrado' });
     }
+    
+    if (!roles.includes(req.user.role)) {
+      console.error('❌ Rol no permitido:', req.user.role, 'Esperaba:', roles);
+      return res.status(403).json({ msg: `Rol ${req.user.role} no autorizado. Se esperaba: ${roles.join(', ')}` });
+    }
+    
+    console.log('✅ Autorización OK');
     next();
   };
 };

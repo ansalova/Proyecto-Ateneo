@@ -2,13 +2,15 @@ import { useContext, useEffect, useState } from 'react'
 import { AuthContext } from '../context/AuthContext'
 import API from '../services/api'
 import { updateOrderStatus } from '../services/payments'
-import { Download, Filter, Calendar } from 'lucide-react'
+import { Download, Filter, Calendar, Check, X } from 'lucide-react'
 
 export default function PaymentReport() {
   const { user } = useContext(AuthContext)
   const [report, setReport] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [successMsg, setSuccessMsg] = useState('')
+  const [updatingOrder, setUpdatingOrder] = useState(null)
   const [filters, setFilters] = useState({
     startDate: '',
     endDate: '',
@@ -38,8 +40,9 @@ export default function PaymentReport() {
       setReport(data)
       setError('')
     } catch (err) {
-      setError('Error al cargar el reporte de pagos')
-      console.error(err)
+      const errorMsg = err.response?.data?.error || err.response?.data?.message || err.message || 'Error desconocido';
+      setError(`Error al cargar el reporte de pagos: ${errorMsg}`)
+      console.error('PaymentReport error:', err)
     } finally {
       setLoading(false)
     }
@@ -79,11 +82,11 @@ export default function PaymentReport() {
     window.URL.revokeObjectURL(url)
   }
 
-  if (!user || user.role !== 'admin') {
+  if (!user || (user.role !== 'admin' && user.role !== 'teacher')) {
     return (
       <div className="card" style={{ maxWidth: 600, margin: '0 auto', padding: 24, textAlign: 'center' }}>
         <h2>Acceso Denegado</h2>
-        <p>Solo los administradores pueden ver este reporte.</p>
+        <p>Solo los administradores y profesores pueden ver este reporte.</p>
       </div>
     )
   }
@@ -110,6 +113,20 @@ export default function PaymentReport() {
           }}
         >
           {error}
+        </div>
+      )}
+
+      {successMsg && (
+        <div
+          className="card"
+          style={{
+            background: '#f0fdf4',
+            border: '1px solid #86efac',
+            color: '#166534',
+            marginBottom: 24,
+          }}
+        >
+          ✓ {successMsg}
         </div>
       )}
 
@@ -227,7 +244,7 @@ export default function PaymentReport() {
                 <th style={{ padding: 12, textAlign: 'left', borderBottom: '1px solid #e5e7eb' }}>Método</th>
                 <th style={{ padding: 12, textAlign: 'left', borderBottom: '1px solid #e5e7eb' }}>Estado</th>
                 <th style={{ padding: 12, textAlign: 'left', borderBottom: '1px solid #e5e7eb' }}>Fecha</th>
-                {user?.role === 'admin' && (
+                {(user?.role === 'admin' || user?.role === 'teacher') && (
                   <th style={{ padding: 12, textAlign: 'left', borderBottom: '1px solid #e5e7eb' }}>Acciones</th>
                 )}
               </tr>
@@ -242,10 +259,48 @@ export default function PaymentReport() {
                       </code>
                     </td>
                     <td style={{ padding: 12 }}>
-                      <div>
-                        <strong>{payment.name}</strong>
-                        <br />
-                        <small style={{ opacity: 0.6 }}>{payment.email}</small>
+                      <div style={{ background: '#f9fafb', padding: 10, borderRadius: 6, borderLeft: '3px solid #1f7a4a' }}>
+                        <div style={{ marginBottom: 4 }}>
+                          <strong style={{ color: '#1e293b' }}>{payment.name}</strong>
+                        </div>
+                        <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: 2 }}>
+                          📧 {payment.email}
+                        </div>
+                        {payment.document_number && (
+                          <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: 2 }}>
+                            🆔 {payment.document_number}
+                          </div>
+                        )}
+                        {payment.grade && (
+                          <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: 2 }}>
+                            📚 Grado: <strong>{payment.grade}</strong>
+                          </div>
+                        )}
+                        {payment.role && (
+                          <div style={{ fontSize: '0.85rem', marginBottom: 4 }}>
+                            👤 <span style={{ background: '#eef2ff', padding: '2px 8px', borderRadius: 3, color: '#0b63f6', fontWeight: 600 }}>
+                              {payment.role === 'student' ? 'Estudiante' : payment.role === 'teacher' ? 'Profesor' : 'Admin'}
+                            </span>
+                          </div>
+                        )}
+                        {payment.metadata && (() => {
+                          try {
+                            const meta = typeof payment.metadata === 'string' ? JSON.parse(payment.metadata) : payment.metadata;
+                            const months = meta.items && Array.isArray(meta.items) 
+                              ? meta.items.map(item => item.metadata?.month).filter(Boolean)
+                              : [];
+                            if (months.length > 0) {
+                              return (
+                                <div style={{ fontSize: '0.85rem', color: '#1f7a4a', fontWeight: 600, padding: '6px 8px', background: '#e8fff3', borderRadius: 4 }}>
+                                  📅 Meses: {months.join(', ')}
+                                </div>
+                              );
+                            }
+                          } catch (e) {
+                            console.error('Error parsing metadata:', e);
+                          }
+                          return null;
+                        })()}
                       </div>
                     </td>
                     <td style={{ padding: 12, textAlign: 'right' }}>
@@ -277,37 +332,75 @@ export default function PaymentReport() {
                                 : '#dc2626'
                         }}
                       >
-                        {payment.status}
+                        {payment.status === 'completed' ? 'Pagado' : payment.status === 'pending' ? 'Pendiente' : 'No Pagado'}
                       </span>
                     </td>
                     <td style={{ padding: 12 }}>
                       <small>{new Date(payment.created_at).toLocaleDateString('es-CO')}</small>
                     </td>
-                    {user?.role === 'admin' && (
+                    {(user?.role === 'admin' || user?.role === 'teacher') && (
                       <td style={{ padding: 12 }}>
-                        {payment.status === 'pending' && (
-                          <button
-                            className="button"
-                            style={{ padding: '4px 8px', fontSize: 12, whiteSpace: 'nowrap' }}
-                            onClick={async () => {
-                              try {
-                                await updateOrderStatus(payment.external_reference, 'completed');
-                                fetchReport(filters);
-                              } catch (err) {
-                                console.error('Error marcando como pagado', err);
-                              }
-                            }}
-                          >
-                            Marcar pagado
-                          </button>
-                        )}
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                          {payment.status === 'pending' && (
+                            <button
+                              className="button"
+                              style={{ padding: '6px 10px', fontSize: 11, whiteSpace: 'nowrap', background: '#16a34a', color: 'white', border: 'none', borderRadius: 4, cursor: updatingOrder === payment.external_reference ? 'wait' : 'pointer' }}
+                              disabled={updatingOrder === payment.external_reference}
+                              onClick={async () => {
+                                try {
+                                  setUpdatingOrder(payment.external_reference)
+                                  console.log('Marcando como pagado:', payment.external_reference)
+                                  await updateOrderStatus(payment.external_reference, 'completed')
+                                  console.log('✅ Actualizado exitosamente')
+                                  setSuccessMsg(`Pago de ${payment.name} marcado como pagado`)
+                                  setTimeout(() => setSuccessMsg(''), 3000)
+                                  await fetchReport(filters)
+                                } catch (err) {
+                                  console.error('❌ Error marcando como pagado:', err.response?.data || err.message)
+                                  setError(`Error: ${err.response?.data?.error || err.response?.data?.message || err.message}`)
+                                } finally {
+                                  setUpdatingOrder(null)
+                                }
+                              }}
+                              title="Marcar este pago como completado"
+                            >
+                              <Check size={14} style={{ marginRight: 4 }} /> Pagado
+                            </button>
+                          )}
+                          {payment.status !== 'failed' && (
+                            <button
+                              className="button"
+                              style={{ padding: '6px 10px', fontSize: 11, whiteSpace: 'nowrap', background: '#dc2626', color: 'white', border: 'none', borderRadius: 4, cursor: updatingOrder === payment.external_reference ? 'wait' : 'pointer' }}
+                              disabled={updatingOrder === payment.external_reference}
+                              onClick={async () => {
+                                try {
+                                  setUpdatingOrder(payment.external_reference)
+                                  console.log('Marcando como no pagado:', payment.external_reference)
+                                  await updateOrderStatus(payment.external_reference, 'failed')
+                                  console.log('✅ Actualizado exitosamente')
+                                  setSuccessMsg(`Pago de ${payment.name} marcado como no pagado`)
+                                  setTimeout(() => setSuccessMsg(''), 3000)
+                                  await fetchReport(filters)
+                                } catch (err) {
+                                  console.error('❌ Error marcando como no pagado:', err.response?.data || err.message)
+                                  setError(`Error: ${err.response?.data?.error || err.response?.data?.message || err.message}`)
+                                } finally {
+                                  setUpdatingOrder(null)
+                                }
+                              }}
+                              title="Marcar este pago como rechazado/no pagado"
+                            >
+                              <X size={14} style={{ marginRight: 4 }} /> No pagado
+                            </button>
+                          )}
+                        </div>
                       </td>
                     )}
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan="6" style={{ padding: 24, textAlign: 'center', opacity: 0.6 }}>
+                  <td colSpan={(user?.role === 'admin' || user?.role === 'teacher') ? 7 : 6} style={{ padding: 24, textAlign: 'center', opacity: 0.6 }}>
                     No hay transacciones para mostrar
                   </td>
                 </tr>

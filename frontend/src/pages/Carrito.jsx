@@ -57,7 +57,9 @@ export default function Carrito() {
                   <span style={{ padding: '0 0.5rem', fontWeight: 600 }}>{item.qty}</span>
                   <button 
                     onClick={() => updateQty(item.id, item.qty + 1)}
-                    style={{ background: 'none', border: 'none', padding: '0.5rem 1rem', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                    style={{ background: 'none', border: 'none', padding: '0.5rem 1rem', cursor: 'not-allowed', display: 'flex', alignItems: 'center', opacity: 0.5 }}
+                    disabled={true}
+                    title="No puedes aumentar la cantidad de mensualidades"
                   >
                     <Plus size={16} />
                   </button>

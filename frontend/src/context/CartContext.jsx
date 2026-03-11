@@ -17,9 +17,9 @@ export function CartProvider({ children }) {
       const found = prev.find(p => p.id === product.id)
 
       if (found) {
-        return prev.map(p =>
-          p.id === product.id ? { ...p, qty: p.qty + 1 } : p
-        )
+        // Si el producto ya existe, no aumentar la cantidad
+        // Esto previene pagar el mismo mes dos veces
+        return prev
       }
 
       return [...prev, { ...product, qty: 1 }]

@@ -27,6 +27,7 @@ import Documentos from "./pages/Documentos";
 import AdminDashboard from "./pages/AdminDashboard";
 import PaymentReport from "./pages/PaymentReport";
 import PaymentHistory from "./pages/PaymentHistory";
+import MyPayments from "./pages/MyPayments";
 import Messaging from "./pages/Messaging";
 import ContactForm from "./pages/ContactForm";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -177,12 +178,12 @@ export default function App() {
             }
           />
 
-          {/* Historial de pagos de usuario */}
+          {/* Mis Pagos */}
           <Route
             path="/mis-pagos"
             element={
               <ProtectedRoute>
-                <PaymentHistory />
+                <MyPayments />
               </ProtectedRoute>
             }
           />

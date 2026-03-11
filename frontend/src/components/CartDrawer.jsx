@@ -68,12 +68,15 @@ export default function CartDrawer() {
                 <small>Cantidad: {i.qty}</small>
                 <button
                   onClick={() => updateQty(i.id, i.qty + 1)}
+                  disabled={true}
+                  title="No puedes aumentar la cantidad de mensualidades"
                   style={{
                     background: 'transparent',
                     border: 'none',
-                    cursor: 'pointer',
+                    cursor: 'not-allowed',
                     fontSize: 16,
-                    lineHeight: 1
+                    lineHeight: 1,
+                    opacity: 0.5
                   }}
                 >
                   +

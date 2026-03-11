@@ -2,12 +2,13 @@ import React, { useContext, useState, useEffect } from 'react'
 import { CartContext } from '../context/CartContext'
 import { AuthContext } from '../context/AuthContext'
 import { useNavigate, Link } from "react-router-dom"
+import API from '../services/api'
 import { School, BookOpen, ChevronsRight, Calendar, GraduationCap, CreditCard } from 'lucide-react'
 
 const MENSUALIDAD = {
   id: 1,
   name: 'Mensualidad Colegio Ateneo',
-  price: 120000,
+  price: 80000,
   image: '/mensualidad.png',
   description: 'Pago de la mensualidad escolar. Incluye acceso a plataforma y servicios educativos.'
 }
@@ -24,6 +25,9 @@ export default function Home() {
   const [selectedMonths, setSelectedMonths] = useState([])
   const [showServices, setShowServices] = useState(false)
   const [showLoginPrompt, setShowLoginPrompt] = useState(false)
+  const [errorMsg, setErrorMsg] = useState('')
+  const [monthStatus, setMonthStatus] = useState({}) // Estado de cada mes
+  const [loadingStatus, setLoadingStatus] = useState(false)
 
   useEffect(() => {
     // Si ya cargó y no hay usuario, mostramos el prompt
@@ -32,7 +36,62 @@ export default function Home() {
     }
   }, [loading, user])
 
+  // Cargar estado de pagos cuando el usuario cambia
+  useEffect(() => {
+    if (user && user.id) {
+      loadPaymentStatus()
+    }
+  }, [user])
+
+  const loadPaymentStatus = async () => {
+    try {
+      setLoadingStatus(true)
+      const { data } = await API.get('/api/payments/my-status')
+      setMonthStatus(data)
+    } catch (error) {
+      console.error('Error loading payment status:', error)
+      setMonthStatus({})
+    } finally {
+      setLoadingStatus(false)
+    }
+  }
+
+  // Determinar el mes actual (0-11)
+  const currentMonthIndex = new Date().getMonth()
+
+  // Verificar si un mes ya pasó
+  const isMonthPassed = (monthName) => {
+    const monthIndex = MESES.indexOf(monthName)
+    return monthIndex < currentMonthIndex
+  }
+
+  // Obtener el estado visual de un mes
+  const getMonthStatusInfo = (month) => {
+    const status = monthStatus[month]
+    if (status === 'completed') {
+      return { label: '✓ Pagado', color: '#16a34a', bg: '#dcfce7', border: '#86efac', disabled: true }
+    } else if (status === 'pending') {
+      return { label: '⏳ Pendiente', color: '#ca8a04', bg: '#fef3c7', border: '#fcd34d', disabled: false }
+    } else if (status === 'failed') {
+      return { label: '❌ No pagado', color: '#dc2626', bg: '#fee2e2', border: '#fecaca', disabled: false }
+    }
+    return { label: month, color: '#475569', bg: '#ffffff', border: '#e2e8f0', disabled: false }
+  }
+
   const toggleMonth = (month) => {
+    // No permitir seleccionar si ya el mes pasó
+    if (isMonthPassed(month)) {
+      setErrorMsg('⏰ No puedes pagar meses que ya han pasado')
+      return
+    }
+    
+    const status = monthStatus[month]
+    // No permitir pagar si ya está pagado
+    if (status === 'completed') {
+      setErrorMsg('✓ Este mes ya está pagado')
+      return
+    }
+
     setSelectedMonths(prev => 
       prev.includes(month) 
         ? prev.filter(m => m !== month)
@@ -42,7 +101,7 @@ export default function Home() {
 
   const handlePay = () => {
     if (selectedMonths.length === 0) {
-      alert('Por favor selecciona al menos un mes')
+      setErrorMsg('Por favor selecciona al menos un mes')
       return
     }
     
@@ -53,7 +112,7 @@ export default function Home() {
         metadata: { month } 
       })
     })
-    // Redirigimos al checkout para completar datos del estudiante
+    // Redirigimos directamente al checkout
     navigate('/checkout')
   }
 
@@ -105,27 +164,50 @@ export default function Home() {
                   </div>
 
                   <div style={{ marginTop: 12 }}>
-                    <label style={{ display: 'block', marginBottom: 8 }}>Selecciona los meses a pagar (máximo 1 por mes):</label>
+                    <label style={{ display: 'block', marginBottom: 8 }}>Selecciona los meses a pagar:</label>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 12 }}>
-                      {MESES.map((month) => (
-                        <button
-                          key={month}
-                          onClick={() => toggleMonth(month)}
-                          style={{
-                            padding: '10px 8px',
-                            border: selectedMonths.includes(month) ? '2px solid #0b63f6' : '2px solid #e2e8f0',
-                            borderRadius: 6,
-                            background: selectedMonths.includes(month) ? '#eef2ff' : '#ffffff',
-                            color: selectedMonths.includes(month) ? '#0b63f6' : '#475569',
-                            fontWeight: selectedMonths.includes(month) ? '600' : '400',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s'
-                          }}
-                        >
-                          {month}
-                        </button>
-                      ))}
+                      {MESES.map((month) => {
+                        const monthPassed = isMonthPassed(month)
+                        const statusInfo = getMonthStatusInfo(month)
+                        const isSelected = selectedMonths.includes(month)
+                        const isPaid = statusInfo.disabled && monthStatus[month] === 'completed'
+                        
+                        return (
+                          <button
+                            key={month}
+                            onClick={() => {
+                              setErrorMsg('')
+                              toggleMonth(month)
+                            }}
+                            disabled={monthPassed || statusInfo.disabled}
+                            title={monthPassed ? 'Este mes ya pasó' : isPaid ? 'Este mes ya está pagado' : ''}
+                            style={{
+                              padding: '12px 8px',
+                              border: isSelected && !isPaid ? `2px solid ${statusInfo.color}` : `2px solid ${statusInfo.border}`,
+                              borderRadius: 6,
+                              background: isSelected && !isPaid ? statusInfo.bg : isPaid ? statusInfo.bg : monthPassed ? '#f3f4f6' : '#ffffff',
+                              color: isSelected && !isPaid ? statusInfo.color : statusInfo.color,
+                              fontWeight: isSelected || isPaid ? '600' : '400',
+                              cursor: monthPassed || statusInfo.disabled ? 'not-allowed' : 'pointer',
+                              opacity: monthPassed || statusInfo.disabled ? 0.6 : 1,
+                              transition: 'all 0.2s',
+                              textDecoration: monthPassed ? 'line-through' : 'none',
+                              fontSize: '0.9rem'
+                            }}
+                          >
+                            <div style={{ fontSize: '0.75rem', color: statusInfo.color, minHeight: 16 }}>
+                              {isPaid ? '✓ Pagado' : monthPassed ? 'Pasado' : monthStatus[month] === 'pending' ? '⏳' : monthStatus[month] === 'failed' ? '❌' : ''}
+                            </div>
+                            <div>{month}</div>
+                          </button>
+                        )
+                      })}
                     </div>
+                    {errorMsg && (
+                      <div style={{ padding: 8, background: '#fff5f5', border: '1px solid #fecaca', borderRadius: 6, marginBottom: 12, fontSize: '0.9rem', color: '#b91c1c' }}>
+                        {errorMsg}
+                      </div>
+                    )}
                     {selectedMonths.length > 0 && (
                       <div style={{ padding: 8, background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 6, marginBottom: 12, fontSize: '0.9rem', color: '#166534' }}>
                         ✓ {selectedMonths.length} mes{selectedMonths.length !== 1 ? 'es' : ''} seleccionado{selectedMonths.length !== 1 ? 's' : ''}: {selectedMonths.join(', ')}
@@ -232,25 +314,40 @@ export default function Home() {
             <div style={{ marginTop: 12 }}>
               <label style={{ display: 'block', marginBottom: 8 }}>Selecciona los meses a pagar (máximo 1 por mes):</label>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 12 }}>
-                {MESES.map((month) => (
-                  <button
-                    key={month}
-                    onClick={() => toggleMonth(month)}
-                    style={{
-                      padding: '10px 8px',
-                      border: selectedMonths.includes(month) ? '2px solid #0b63f6' : '2px solid #e2e8f0',
-                      borderRadius: 6,
-                      background: selectedMonths.includes(month) ? '#eef2ff' : '#ffffff',
-                      color: selectedMonths.includes(month) ? '#0b63f6' : '#475569',
-                      fontWeight: selectedMonths.includes(month) ? '600' : '400',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s'
-                    }}
-                  >
-                    {month}
-                  </button>
-                ))}
+                {MESES.map((month) => {
+                  const monthPassed = isMonthPassed(month)
+                  return (
+                    <button
+                      key={month}
+                      onClick={() => {
+                        setErrorMsg('')
+                        toggleMonth(month)
+                      }}
+                      disabled={monthPassed}
+                      title={monthPassed ? 'Este mes ya pasó' : ''}
+                      style={{
+                        padding: '10px 8px',
+                        border: monthPassed ? '2px solid #d1d5db' : selectedMonths.includes(month) ? '2px solid #0b63f6' : '2px solid #e2e8f0',
+                        borderRadius: 6,
+                        background: monthPassed ? '#f3f4f6' : selectedMonths.includes(month) ? '#eef2ff' : '#ffffff',
+                        color: monthPassed ? '#9ca3af' : selectedMonths.includes(month) ? '#0b63f6' : '#475569',
+                        fontWeight: selectedMonths.includes(month) ? '600' : '400',
+                        cursor: monthPassed ? 'not-allowed' : 'pointer',
+                        opacity: monthPassed ? 0.6 : 1,
+                        transition: 'all 0.2s',
+                        textDecoration: monthPassed ? 'line-through' : 'none'
+                      }}
+                    >
+                      {month}
+                    </button>
+                  )
+                })}
               </div>
+              {errorMsg && (
+                <div style={{ padding: 8, background: '#fff5f5', border: '1px solid #fecaca', borderRadius: 6, marginBottom: 12, fontSize: '0.9rem', color: '#b91c1c' }}>
+                  {errorMsg}
+                </div>
+              )}
               {selectedMonths.length > 0 && (
                 <div style={{ padding: 8, background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 6, marginBottom: 12, fontSize: '0.9rem', color: '#166534' }}>
                   ✓ {selectedMonths.length} mes{selectedMonths.length !== 1 ? 'es' : ''} seleccionado{selectedMonths.length !== 1 ? 's' : ''}: {selectedMonths.join(', ')}
@@ -284,25 +381,95 @@ export default function Home() {
       {/* Modal Prompt Login */}
       {showLoginPrompt && (
         <div className="modal-backdrop">
-          <div className="modal-window" style={{ maxWidth: 400, textAlign: 'center' }}>
-            <h2>Bienvenido al Colegio Ateneo</h2>
-            <p style={{ marginBottom: 20 }}>Por favor, regístrese o inicie sesión para acceder a los servicios.</p>
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
-              <Link to="/login">
-                <button className="button">Iniciar Sesión</button>
+          <div className="modal-window" style={{ maxWidth: 480, textAlign: 'center', padding: '48px 32px' }}>
+            <h2 style={{ fontSize: '28px', margin: '0 0 12px 0', color: '#1e293b' }}>Accede a Ateneo</h2>
+            <p style={{ color: '#64748b', fontSize: '16px', marginBottom: 32, lineHeight: 1.6 }}>
+              Inicia sesión si ya tienes cuenta o crea una nueva para acceder a todos nuestros servicios educativos.
+            </p>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+              <Link to="/login" style={{ textDecoration: 'none' }}>
+                <button 
+                  className="button" 
+                  style={{ 
+                    width: '100%',
+                    padding: '12px 16px',
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    border: 'none',
+                    borderRadius: '8px',
+                    background: '#1f7a4a',
+                    color: 'white',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease',
+                    boxShadow: '0 2px 8px rgba(31, 122, 74, 0.2)'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.background = '#1a6a41';
+                    e.target.style.boxShadow = '0 4px 12px rgba(31, 122, 74, 0.3)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.background = '#1f7a4a';
+                    e.target.style.boxShadow = '0 2px 8px rgba(31, 122, 74, 0.2)';
+                  }}
+                >
+                  Iniciar Sesión
+                </button>
               </Link>
-              <Link to="/register">
-                <button className="button button-outline">Registrarse</button>
+              <Link to="/register" style={{ textDecoration: 'none' }}>
+                <button 
+                  className="button" 
+                  style={{ 
+                    width: '100%',
+                    padding: '12px 16px',
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    border: '2px solid #1f7a4a',
+                    borderRadius: '8px',
+                    background: 'white',
+                    color: '#1f7a4a',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.backgroundColor = '#f0f9f5';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.backgroundColor = 'white';
+                  }}
+                >
+                  Registrarse
+                </button>
               </Link>
             </div>
-            <div style={{ marginTop: 20 }}>
-              <button 
-                onClick={() => setShowLoginPrompt(false)} 
-                style={{ background: 'none', border: 'none', color: '#666', cursor: 'pointer', textDecoration: 'underline' }}
-              >
-                Continuar como invitado
-              </button>
-            </div>
+
+            <button
+              onClick={() => setShowLoginPrompt(false)}
+              style={{
+                width: '100%',
+                padding: '10px 16px',
+                fontSize: '14px',
+                fontWeight: '500',
+                border: 'none',
+                borderRadius: '8px',
+                background: 'transparent',
+                color: '#64748b',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.color = '#1e293b';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.color = '#64748b';
+              }}
+            >
+              Continuar como invitado
+            </button>
+
+            <p style={{ color: '#94a3b8', fontSize: '13px', marginTop: 24 }}>
+              Puedes explorar sin cuenta, pero necesitarás acceso para realizar pagos.
+            </p>
           </div>
         </div>
       )}

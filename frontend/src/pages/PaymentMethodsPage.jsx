@@ -114,24 +114,6 @@ export default function PaymentMethodsPage() {
 
       <div className="payment-grid">
         <PaymentCard 
-          title="Tarjeta de Crédito / Débito"
-          description="Visa, MasterCard, American Express"
-          icon={<CreditCard size={24} />}
-          onClick={() => handleSelect("tarjeta")}
-          disabled={loadingMethod !== null}
-          loading={loadingMethod === "tarjeta"}
-        />
-
-        <PaymentCard 
-          title="PSE"
-          description="Pago seguro en línea"
-          icon={<Landmark size={24} />}
-          onClick={() => handleSelect("pse")}
-          disabled={loadingMethod !== null}
-          loading={loadingMethod === "pse"}
-        />
-
-        <PaymentCard 
           title="Nequi"
           description="Pago rápido desde tu celular"
           icon={<Smartphone size={24} />}
@@ -147,15 +129,6 @@ export default function PaymentMethodsPage() {
           onClick={() => handleSelect("daviplata")}
           disabled={loadingMethod !== null}
           loading={loadingMethod === "daviplata"}
-        />
-
-        <PaymentCard 
-          title="Pago en Secretaría del Colegio"
-          description="Realice el pago de forma presencial"
-          icon={<School size={24} />}
-          onClick={() => handleSelect("oficina")}
-          disabled={loadingMethod !== null}
-          loading={loadingMethod === "oficina"}
         />
       </div>
     </div>

@@ -103,6 +103,11 @@ const connectDB = async () => {
       ALTER TABLE users ADD COLUMN IF NOT EXISTS document_number VARCHAR(50);
     `);
 
+    // Agregar columna grade si no existe (para estudiantes)
+    await p.query(`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS grade VARCHAR(20);
+    `);
+
     await p.query(`
       CREATE TABLE IF NOT EXISTS orders (
         id SERIAL PRIMARY KEY,
