@@ -1,12 +1,10 @@
 import express from 'express';
-import { createCheckout, receiveWebhook, receiveWebhookGet, getOrders, getOrder, patchOrderStatus, sendPaymentInitEmail, getMyPaymentStatus } from '../controllers/paymentController.js';
+import { createCheckout, getOrders, getOrder, patchOrderStatus, sendPaymentInitEmail, getMyPaymentStatus } from '../controllers/paymentController.js';
 import { protect, authorize } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
 router.post('/checkout', protect, createCheckout);
-router.post('/webhook/mercadopago', receiveWebhook);
-router.get('/webhook/mercadopago', receiveWebhookGet);
 router.post('/send-init-email', protect, sendPaymentInitEmail);
 
 // Obtener estado de pagos del usuario actual

@@ -1,17 +1,16 @@
-import { useSearchParams, Link, useNavigate } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { CheckCircle, Clock, XCircle, Home, MessageSquare } from 'lucide-react';
-import { useEffect, useContext } from 'react';
+import { useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 
 export default function ConfirmacionPago() {
   const [params] = useSearchParams();
   const nav = useNavigate();
   const metodo = params.get("method");
-  const provider = (params.get("provider") || '').toLowerCase();
   const result = (params.get("result") || '').toLowerCase();
   const amount = params.get("amount");
 
-  // Para métodos offline / mp se puede recibir referencia
+  // Para métodos offline se puede recibir referencia
   const reference = params.get('reference');
   const title = params.get('title');
   const account = params.get('account');
@@ -24,14 +23,9 @@ export default function ConfirmacionPago() {
   const { user } = useContext(AuthContext);
 
   const mensajes = {
-    tarjeta: "Hemos iniciado tu pago con tarjeta. Si no fuiste redirigido, vuelve a intentar.",
-    pse: "Hemos iniciado tu pago por PSE. Si no fuiste redirigido, vuelve a intentar.",
     nequi: "Envía el valor de la mensualidad al número oficial del colegio.",
     daviplata: "Realiza el pago desde tu app Daviplata al número autorizado.",
-    oficina: "Puedes dirigirte a la Secretaría del colegio para completar el pago.",
   };
-
-  const isMercadoPago = provider === 'mp' || provider === 'mercadopago';
 
   const statusConfig = {
     success: { icon: CheckCircle, color: '#16a34a', label: 'Pago aprobado', bgColor: '#dcfce7' },
@@ -71,55 +65,7 @@ export default function ConfirmacionPago() {
             {currentStatus.label}
           </h2>
 
-          {isMercadoPago && result ? (
-            <div>
-              {(result === 'success' || result === 'approved') ? (
-                <p style={{ margin: '12px 0 0 0', opacity: 0.8 }}>
-                  ✓ Tu pago fue procesado correctamente. Recibirás un correo de confirmación pronto.
-                </p>
-              ) : result === 'pending' ? (
-                <p style={{ margin: '12px 0 0 0', opacity: 0.8 }}>
-                  ⏳ Tu pago está siendo procesado. Te notificaremos una vez se confirme.
-                </p>
-              ) : (
-                <p style={{ margin: '12px 0 0 0', opacity: 0.8 }}>
-                  ✗ El pago no se pudo procesar. Por favor, intenta nuevamente.
-                </p>
-              )}
-
-              {reference && (
-                <div style={{ marginTop: 16, padding: 12, background: 'rgba(255,255,255,0.7)', borderRadius: 6 }}>
-                  <small style={{ opacity: 0.7 }}>Referencia de la orden</small>
-                  <p style={{ margin: '4px 0 0 0', fontFamily: 'monospace', fontWeight: 'bold' }}>{reference}</p>
-                </div>
-              )}
-
-              {amount && (
-                <div style={{ 
-                  marginTop: 16, 
-                  padding: 12, 
-                  background: 'rgba(255,255,255,0.7)',
-                  borderRadius: 6
-                }}>
-                  <small style={{ opacity: 0.7 }}>Monto</small>
-                  <p style={{ margin: '4px 0 0 0', fontSize: 20, fontWeight: 'bold' }}>
-                    ${parseFloat(amount).toFixed(2)}
-                  </p>
-                </div>
-              )}
-
-              {user?.email && (
-                <div style={{ marginTop: 12, fontSize: 14, opacity: 0.8 }}>
-                  {emailSent ? (
-                    <>📧 Correo de confirmación enviado a <strong>{user.email}</strong></>
-                  ) : (
-                    <>⚠️ No se pudo enviar el correo a <strong>{user.email}</strong>{emailError ? `: ${emailError}` : ''}</>
-                  )}
-                </div>
-              )}
-
-            </div>
-          ) : reference ? (
+          {reference ? (
             <div style={{ textAlign: 'left', marginTop: 16, background: 'rgba(255,255,255,0.7)', padding: 12, borderRadius: 6 }}>
               <h3 style={{ margin: '0 0 12px 0', fontSize: 16 }}>{title || 'Instrucciones de Pago'}</h3>
               {reference && (

@@ -8,18 +8,12 @@ export async function startCheckout({ method, amount, metadata }) {
 }
 
 // Para compatibilidad con código existente: simula o redirige si hay backend
-export async function processPayment({ amount, metadata, method = 'tarjeta' }) {
+export async function processPayment({ amount, metadata, method = 'nequi' }) {
   try {
     const baseUrl = API.defaults.baseURL
     if (!baseUrl) throw new Error('Backend URL no configurada')
 
     const res = await startCheckout({ method, amount, metadata })
-
-    if (res.provider === 'mercadopago' && res.redirectUrl) {
-      // Redirige al checkout de Mercado Pago
-      window.location.href = res.redirectUrl
-      return { success: true, redirected: true, externalReference: res.externalReference }
-    }
 
     // Métodos offline devuelven instrucciones y referencia
     if (res.provider === 'offline') {

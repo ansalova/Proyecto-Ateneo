@@ -1,28 +1,10 @@
-import { MercadoPagoConfig, Preference, Payment } from 'mercadopago';
 import dotenv from 'dotenv';
-import { createOrder, findOrderByReference, updateOrderStatus } from '../models/Order.js';
+import { createOrder, findOrderByReference } from '../models/Order.js';
 import { getPool } from '../config/db.js';
 
 dotenv.config();
 
-// Mercado Pago SDK config
-const mpAccessToken = process.env.MP_ACCESS_TOKEN || '';
-const mpEnabled = Boolean(mpAccessToken);
-let mpClient = null;
-let preferenceClient = null;
-let paymentClient = null;
-
-if (mpEnabled) {
-  mpClient = new MercadoPagoConfig({ accessToken: mpAccessToken });
-  preferenceClient = new Preference(mpClient);
-  paymentClient = new Payment(mpClient);
-  console.log('[MP] SDK inicializado');
-} else {
-  console.warn('[MP] MP_ACCESS_TOKEN no configurado. Mercado Pago deshabilitado.');
-}
-
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:5000';
 
 const MESES = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -57,30 +39,6 @@ function validateMonths(items) {
   }
   
   return { valid: true };
-}
-
-function buildItemsFromMetadata(metadata, amount) {
-  const items = [];
-  if (metadata && Array.isArray(metadata.items) && metadata.items.length) {
-    for (const i of metadata.items) {
-      items.push({
-        id: String(i.id ?? 'mensualidad'),
-        title: String(i.name ?? 'Mensualidad Ateneo'),
-        quantity: Number(i.qty ?? 1),
-        currency_id: 'COP',
-        unit_price: Number(i.price ?? 0)
-      });
-    }
-  } else {
-    items.push({
-      id: 'mensualidad',
-      title: 'Mensualidad Ateneo',
-      quantity: 1,
-      currency_id: 'COP',
-      unit_price: Number(amount)
-    });
-  }
-  return items;
 }
 
 export const createCheckout = async (req, res) => {
@@ -134,49 +92,7 @@ export const createCheckout = async (req, res) => {
       }
     }
 
-    // ONLINE: Mercado Pago
-    if (method === 'tarjeta' || method === 'pse') {
-      if (!mpEnabled) {
-        return res.status(500).json({ error: 'Mercado Pago no configurado en el servidor' });
-      }
-
-      const items = buildItemsFromMetadata(metadata, amount);
-      const payment_methods = {};
-      if (method === 'pse') payment_methods.default_payment_method_id = 'pse';
-
-      const preferenceBody = {
-        items,
-        back_urls: {
-          success: `${FRONTEND_URL}/confirmacion-pago?provider=mp&result=success&reference=${external_reference}`,
-          pending: `${FRONTEND_URL}/confirmacion-pago?provider=mp&result=pending&reference=${external_reference}`,
-          failure: `${FRONTEND_URL}/confirmacion-pago?provider=mp&result=failure&reference=${external_reference}`
-        },
-        auto_return: 'approved',
-        notification_url: `${BACKEND_URL}/api/payments/webhook/mercadopago`,
-        external_reference,
-        metadata: { ...fullMetadata, method },
-        payment_methods
-      };
-
-      const pref = await preferenceClient.create({ body: preferenceBody });
-
-      // Actualizar orden con ID de preferencia si es necesario, 
-      // o simplemente confiar en la referencia externa.
-      // Por simplicidad, no guardamos preference_id en la tabla orders por ahora,
-      // pero podríamos agregarlo a la tabla.
-
-      return res.json({
-        success: true,
-        provider: 'mercadopago',
-        redirectUrl: pref.init_point || pref.sandbox_init_point,
-        preferenceId: pref.id,
-        externalReference: external_reference,
-        emailSent,
-        emailError
-      });
-    }
-
-    // OFFLINE
+    // OFFLINE - Solo se aceptan pagos por Nequi y Daviplata
     if (['nequi', 'daviplata'].includes(method)) {
       const reference = external_reference;
       
@@ -211,56 +127,6 @@ export const createCheckout = async (req, res) => {
   } catch (err) {
     console.error('checkout error:', err);
     res.status(500).json({ error: 'internal_error' });
-  }
-};
-
-export const receiveWebhook = async (req, res) => {
-  try {
-    const body = req.body || {};
-    console.log('[MP] WEBHOOK POST:', JSON.stringify(body));
-    
-    // Procesar notificaciones de Mercado Pago
-    const topic = body.action || body.type;
-    
-    if (topic === 'payment.updated' || topic === 'payment.created') {
-      const paymentId = body.data?.id;
-      if (paymentId && paymentClient) {
-        try {
-          const payment = await paymentClient.get({ id: paymentId });
-          const externalRef = payment.external_reference;
-          const status = payment.status; // approved, pending, rejected, etc.
-          
-          if (externalRef) {
-            const dbStatus = status === 'approved' ? 'completed' : 
-                           status === 'pending' ? 'pending' : 
-                           status === 'rejected' ? 'failed' : 'processing';
-            
-            const order = await updateOrderStatus(externalRef, dbStatus);
-            console.log(`[MP] Orden actualizada: ${externalRef} -> ${dbStatus}`, order);
-          }
-        } catch (err) {
-          console.error('[MP] Error al procesar pago:', err.message);
-        }
-      }
-    }
-    
-    res.sendStatus(200);
-  } catch (e) {
-    console.error('webhook POST error:', e);
-    res.sendStatus(200);
-  }
-};
-
-export const receiveWebhookGet = async (req, res) => {
-  try {
-    console.log('[MP] WEBHOOK GET (confirmación de recepción):', JSON.stringify(req.query));
-    
-    // Mercado Pago típicamente envía un GET para confirmación
-    // Solo log y respuesta 200 es suficiente
-    res.sendStatus(200);
-  } catch (e) {
-    console.error('webhook GET error:', e);
-    res.sendStatus(200);
   }
 };
 
