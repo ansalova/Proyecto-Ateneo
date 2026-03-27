@@ -5,7 +5,7 @@ import { sendResetEmail } from "../utils/mailer.js";
 
 export const register = async (req, res) => {
   try {
-    const { name, email, password, role, inviteCode, document_type, document_number, grade } = req.body;
+    const { name, email, password, role, inviteCode, document_type, document_number, phone, grade } = req.body;
 
     if (!name || !email || !password) {
       return res.status(400).json({ msg: "Por favor complete todos los campos" });
@@ -63,7 +63,7 @@ export const register = async (req, res) => {
       finalRole = "admin";
     }
 
-    const newUser = await createUser({ name, email, password: hashedPassword, role: finalRole, document_type, document_number, grade });
+    const newUser = await createUser({ name, email, password: hashedPassword, role: finalRole, document_type, document_number, phone, grade });
 
     res.json({ msg: "Usuario registrado correctamente." });
   } catch (error) {
@@ -90,7 +90,7 @@ export const login = async (req, res) => {
     res.json({
       msg: "Login exitoso",
       token,
-      user: { id: user.id, name: user.name, email: user.email, role: user.role, verified: user.verified, grade: user.grade }
+      user: { id: user.id, name: user.name, email: user.email, role: user.role, verified: user.verified, grade: user.grade, phone: user.phone }
     });
   } catch (error) {
     if (error.message === "DB_NOT_CONFIGURED") {
@@ -217,12 +217,13 @@ res.json({ user: { ...user, verified: user.verified, created_at: user.created_at
 
 export const updateProfile = async (req, res) => {
   try {
-    const { name, email, document_type, document_number, password, grade } = req.body;
+    const { name, email, document_type, document_number, phone, password, grade } = req.body;
     const updates = {};
     if (name !== undefined) updates.name = name;
     if (email !== undefined) updates.email = email;
     if (document_type !== undefined) updates.document_type = document_type;
     if (document_number !== undefined) updates.document_number = document_number;
+    if (phone !== undefined) updates.phone = phone;
     if (grade !== undefined) updates.grade = grade;
     if (password !== undefined) {
       if (password.length < 6) {

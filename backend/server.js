@@ -15,6 +15,7 @@ import documentRoutes from "./routes/documentRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import messageRoutes from "./routes/messageRoutes.js";
 import contactRoutes from "./routes/contactRoutes.js";
+import "./utils/mailer.js"; // Forzar carga del mailer para ver el estado al iniciar
 
 dotenv.config();
 connectDB();

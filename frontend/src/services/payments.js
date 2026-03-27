@@ -16,7 +16,7 @@ export async function processPayment({ amount, metadata, method = 'nequi' }) {
     const res = await startCheckout({ method, amount, metadata })
 
     // Métodos offline devuelven instrucciones y referencia
-    if (res.provider === 'offline') {
+    if (res.provider === 'offline' || res.offline) {
       return { success: true, offline: true, ...res }
     }
 

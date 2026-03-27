@@ -4,7 +4,7 @@ import { processPayment } from "../services/payments";
 import { showToast } from "../utils/helpers";
 import { useState } from "react";
 import { CreditCard, Landmark, Smartphone, Briefcase, School } from "lucide-react";
-import API from "../services/api";
+import logger from "../utils/logger";
 
 export default function PaymentMethodsPage() {
   const navigate = useNavigate();
@@ -13,6 +13,13 @@ export default function PaymentMethodsPage() {
   const metadata = state?.metadata || {};
   const [errorMsg, setErrorMsg] = useState("");
   const [loadingMethod, setLoadingMethod] = useState(null);
+
+  // Extraer meses del metadata para mostrar resumen profesional
+  const paymentMonths = metadata.items 
+    ? metadata.items
+        .map(i => i.metadata?.month)
+        .filter(Boolean)
+    : [];
 
   const handleSelect = async (method) => {
     if (!amount || amount <= 0) {
@@ -24,30 +31,11 @@ export default function PaymentMethodsPage() {
     setErrorMsg("");
     
     try {
+      // Nota: El backend debería encargarse de enviar los correos de notificación
+      // para garantizar que ocurran incluso si el cliente pierde conexión.
       const res = await processPayment({ amount, metadata, method });
 
-      // Intentar enviar email de iniciación de pago después de que se creó la orden
-      if (res.success && res.externalReference) {
-        try {
-          const emailResponse = await API.post('/api/payments/send-init-email', {
-            studentName: metadata.studentName || 'Estudiante',
-            amount,
-            method,
-            reference: res.externalReference
-          });
-          
-          if (emailResponse.data?.success) {
-            console.log('✉️ Email de pago iniciado enviado:', emailResponse.data.messageId);
-          } else if (emailResponse.data?.emailError) {
-            console.warn('⚠️ Error enviando email de pago:', emailResponse.data.emailError);
-          }
-        } catch (emailErr) {
-          console.warn('⚠️ No se pudo enviar email de iniciación:', emailErr.message);
-          // No bloquear el flujo de pago por un error de email
-        }
-      }
-
-      if (res.offline) {
+      if (res && res.offline) {
         // Mostrar confirmación con instrucciones
         const params = new URLSearchParams({
           method,
@@ -68,21 +56,21 @@ export default function PaymentMethodsPage() {
         return;
       }
 
-      if (res.redirected) {
+      if (res && res.redirected) {
         // El navegador será redirigido al checkout de la pasarela
         return;
       }
 
-      if (res.success) {
+      if (res && res.success) {
         // Fallback o método simulado
         setErrorMsg("Procesando... Por favor espera.");
         return;
       }
 
-      setErrorMsg(res.message || "No fue posible iniciar el pago. Intenta nuevamente.");
+      setErrorMsg(res?.message || "No fue posible iniciar el pago. Intenta nuevamente.");
     } catch (err) {
-      console.error("Payment error:", err);
-      setErrorMsg("Error al procesar el pago. Verifica tu conexión e intenta de nuevo.");
+      logger.error("Payment error:", err);
+      setErrorMsg(err.response?.data?.error || "Error al procesar el pago. Verifica tu conexión e intenta de nuevo.");
     } finally {
       setLoadingMethod(null);
     }
@@ -90,7 +78,7 @@ export default function PaymentMethodsPage() {
 
   if (!amount || amount <= 0) {
     return (
-      <div className="payment-container">
+      <div className="payment-container" style={{ textAlign: 'center', padding: '40px' }}>
         <h1>Error</h1>
         <p>El monto no es válido. <a href="/carrito">Vuelve al carrito.</a></p>
       </div>
@@ -98,21 +86,35 @@ export default function PaymentMethodsPage() {
   }
 
   return (
-    <div className="payment-container">
+    <div className="payment-container" style={{ maxWidth: '600px', margin: '0 auto', padding: '24px' }}>
       <h1>Pago de mensualidad</h1>
-      <p>Seleccione uno de los métodos de pago disponibles.</p>
+      <p style={{ color: '#64748b', marginBottom: '24px' }}>Seleccione el método de pago para completar su transacción.</p>
 
-      <div className="monto">
-        <strong>Valor a pagar: </strong> ${amount.toLocaleString('es-CO')}
+      {/* Card de Resumen Profesional */}
+      <div className="card" style={{ background: '#f8fafc', marginBottom: '24px', border: '1px solid #e2e8f0', padding: '16px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748b' }}>Concepto:</p>
+            <strong style={{ fontSize: '1rem', color: '#1e293b' }}>
+              Mensualidad {paymentMonths.join(', ')}
+            </strong>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748b' }}>Total:</p>
+            <strong style={{ fontSize: '1.2rem', color: '#0b63f6' }}>
+              ${amount.toLocaleString('es-CO')}
+            </strong>
+          </div>
+        </div>
       </div>
 
       {errorMsg && (
-        <div className="card" style={{ background: '#fff5f5', border: '1px solid #fecaca', color: '#b91c1c', margin: '12px 0', padding: '12px' }}>
+        <div className="card" style={{ background: '#fff5f5', border: '1px solid #fecaca', color: '#b91c1c', marginBottom: '20px', padding: '12px' }}>
           {errorMsg}
         </div>
       )}
 
-      <div className="payment-grid">
+      <div className="payment-grid" style={{ display: 'grid', gap: '16px' }}>
         <PaymentCard 
           title="Nequi"
           description="Pago rápido desde tu celular"

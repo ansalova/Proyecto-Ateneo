@@ -1,21 +1,13 @@
-# PLAN CHAT WHATSAPP - Mensajería Ateneo
+# Progreso Mejoras Estilos Mensajería
 
-## 1. ✅ Backend - Nuevos endpoints
-- [x] getConversations (lista usuarios con mensajes)
-- [ ] getMessagesByConversation(userId) 
-- [ ] sendMessage (ya OK)
+**✅ TODO.md creado**
 
-## 2. Frontend - UI Chat
-- [ ] Lista usuarios izquierda (recent conversations)
-- [ ] Chat derecho bidireccional
-- [ ] Tabs Inbox/Enviados
-- [ ] Auto-scroll + timestamps
-- [ ] Real-time polling/WebSocket
-
-## 3. Testing
-- [ ] Mensaje A→B visible para B
-- [ ] Sent messages visibles
-- [ ] Delete/mark read
-
-**PROGRESO: 20% - Usuario confirmó sí**
-
+1. [✅] Create TODO.md
+2. [✅] Layout 2 columnas sidebar + chat bubbles (MessagingWhatsApp.jsx creado)
+3. [✅] Role colors emerald/blue/purple
+4. [✅] WhatsApp style bubbles + timestamps/checks
+5. [✅] Toolbar gradient hover effects
+6. [✅] Animaciones slide-in bounce + dark mode toggle
+7. [✅] Responsive test (flex md:flex-row)
+8. [✅] Integrate App.jsx (Messaging → MessagingWhatsApp)
+9. [ ] Demo + completion

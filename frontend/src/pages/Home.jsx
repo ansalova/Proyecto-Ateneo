@@ -3,7 +3,7 @@ import { CartContext } from '../context/CartContext'
 import { AuthContext } from '../context/AuthContext'
 import { useNavigate, Link } from "react-router-dom"
 import API from '../services/api'
-import { School, BookOpen, ChevronsRight, Calendar, GraduationCap, CreditCard, Clock, X, Check } from 'lucide-react'
+import { School, BookOpen, ChevronsRight, Calendar, GraduationCap, CreditCard, Clock, X, Check, ArrowRight, ShieldCheck, Zap } from 'lucide-react'
 
 const MENSUALIDAD = {
   id: 1,

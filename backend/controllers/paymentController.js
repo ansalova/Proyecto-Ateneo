@@ -47,10 +47,44 @@ export const createCheckout = async (req, res) => {
     if (!method) return res.status(400).json({ error: 'method is required' });
     if (!amount || Number(amount) <= 0) return res.status(400).json({ error: 'amount must be > 0' });
 
-    // Validar que los meses no sean pasados
+    const pool = getPool();
+    if (!pool) throw new Error('DB_NOT_CONFIGURED');
+
+    // 1. Validar que los meses no sean pasados
     const monthValidation = validateMonths(metadata?.items);
     if (!monthValidation.valid) {
       return res.status(400).json({ error: monthValidation.message });
+    }
+
+    const officialNumber = '3103115016';
+    const offlineInstructions = {
+      nequi: {
+        title: 'Pago por Nequi',
+        account: officialNumber,
+        message: 'Envía el valor exacto y anexa la referencia en la descripción.'
+      },
+      daviplata: {
+        title: 'Pago por Daviplata',
+        account: officialNumber,
+        message: 'Envía el valor exacto y anexa la referencia en la descripción.'
+      }
+    };
+
+    // 2. Verificar Idempotencia (¿Ya existe este checkoutId?)
+    if (metadata?.checkoutId) {
+      const { rows: existing } = await pool.query(
+        "SELECT * FROM orders WHERE metadata->>'checkoutId' = $1",
+        [metadata.checkoutId]
+      );
+      if (existing.length > 0) {
+        return res.json({ 
+          success: true, 
+          provider: 'offline',
+          offline: ['nequi', 'daviplata'].includes(existing[0].method),
+          reference: existing[0].external_reference,
+          instructions: offlineInstructions[existing[0].method]
+        });
+      }
     }
 
     const external_reference = generateReference();
@@ -82,9 +116,17 @@ export const createCheckout = async (req, res) => {
         console.log('[PAYMENTS] Enviando correo de orden a', recipientEmail);
         const { sendOrderEmail } = await import('../utils/mailer.js');
         const info = await sendOrderEmail({ to: recipientEmail, order: { external_reference, amount, method } });
-        emailSent = Boolean(info && (info.accepted?.length || info.messageId));
-        if (!emailSent) {
-          emailError = 'no_accepted';
+        
+        // En desarrollo, si no hay SMTP_USER configurado, asumimos que el correo no se envió realmente
+        if (process.env.NODE_ENV === 'development' && !process.env.SMTP_USER) {
+            emailSent = false;
+            emailError = 'mock_mailer_active'; // Indica que el mailer simulado está activo
+            console.log('[PAYMENTS] Correo simulado en desarrollo (sin SMTP configurado). No se envió realmente.');
+        } else {
+            emailSent = Boolean(info && (info.accepted?.length || info.messageId));
+            if (!emailSent) {
+                emailError = 'no_accepted';
+            }
         }
       } catch (e) {
         console.error('[PAYMENTS] Error enviando correo orden:', e);
@@ -95,29 +137,13 @@ export const createCheckout = async (req, res) => {
     // OFFLINE - Solo se aceptan pagos por Nequi y Daviplata
     if (['nequi', 'daviplata'].includes(method)) {
       const reference = external_reference;
-      
-      // Prioridad absoluta al número 3103115016 solicitado por el usuario
-      const officialNumber = '3103115016';
-      
-      const instructions = {
-        nequi: {
-          title: 'Pago por Nequi',
-          account: officialNumber,
-          message: 'Envía el valor exacto y anexa la referencia en la descripción.'
-        },
-        daviplata: {
-          title: 'Pago por Daviplata',
-          account: officialNumber,
-          message: 'Envía el valor exacto y anexa la referencia en la descripción.'
-        }
-      };
 
       return res.json({
         success: true,
         provider: 'offline',
         method,
         reference,
-        instructions: instructions[method],
+        instructions: offlineInstructions[method],
         emailSent,
         emailError
       });
@@ -309,4 +335,3 @@ export const getMyPaymentStatus = async (req, res) => {
     res.status(500).json({ error: 'internal_error' });
   }
 };
-

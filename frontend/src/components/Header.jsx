@@ -39,8 +39,8 @@ export default function Header() {
       }
       fetchUnreadData()
       
-      // Actualizar cada 10 segundos (más frecuente)
-      const interval = setInterval(fetchUnreadData, 10000)
+      // Polling controlado: Cada 30 segundos es suficiente para notificaciones no críticas
+      const interval = setInterval(fetchUnreadData, 30000);
       
       // Escuchar evento personalizado cuando se envían mensajes
       window.addEventListener('messagesUpdated', fetchUnreadData)

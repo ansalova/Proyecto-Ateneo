@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from "react";
-import { RotateCcw, WifiOff } from 'lucide-react';
+import { RotateCcw, GraduationCap, Mail, User } from 'lucide-react';
 import API from "../services/api";
+import logger from "../utils/logger";
 
 const SUBJECTS_ORDER = ["Matemáticas", "Español", "Ciencias", "Historia", "Inglés", "Arte", "Educación Física", "Tecnología"];
 
 export default function StudentGrades() {
   const [grades, setGrades] = useState([]);
+  const [student, setStudent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -15,38 +17,48 @@ export default function StudentGrades() {
         // Limpiar completamente caché y storage
         if (window.caches) {
           try {
-            const cacheNames = await caches.keys();
-            await Promise.all(cacheNames.map(name => caches.delete(name)));
-            console.log('✅ Service worker cache limpiado');
+            const cacheNames = await window.caches.keys();
+            await Promise.all(cacheNames.map(name => window.caches.delete(name)));
+            logger.debug('✅ Service worker cache limpiado');
           } catch (e) {
-            console.log('ℹ️ No hay service worker caché');
+            logger.info('ℹ️ No hay service worker caché');
           }
         }
         
         // Forzar recarga sin caché con timestamp
         const timestamp = new Date().getTime();
-        const url = `/api/student/my-grades?t=${timestamp}&nocache=${Math.random()}`;
-        console.log('📡 Petición a:', url);
+        const url = `/api/student/mi-perfil/calificaciones?t=${timestamp}`;
+        logger.info('📡 Petición a:', url);
         
-        const { data } = await API.get(url);
-        console.log("📦 Respuesta recibida:", data);
-        console.log("📊 Tipo:", typeof data, "Es array:", Array.isArray(data), "Cantidad:", data?.length);
-        if (!Array.isArray(data)) {
+        const response = await API.get(url);
+        const data = response.data;
+        logger.debug("📦 Respuesta recibida:", data);
+        
+        if (!data || !Array.isArray(data.grades)) {
           throw new Error("Formato inválido de calificaciones");
         }
-        // Convertir grades de string a número
-        const gradesWithNumbers = data.map(g => ({
+        setStudent({ name: data.name, email: data.email });
+        const gradesArray = data.grades;
+
+        // Asegurar que la calificación sea un número
+        const gradesWithNumbers = gradesArray.map(g => ({
           ...g,
-          grade: typeof g.grade === 'string' ? parseFloat(g.grade) : g.grade
+          grade: g.grade !== null ? parseFloat(g.grade) : null
         }));
+
         // Ordenar por el orden de SUBJECTS definido
-        const sortedGrades = gradesWithNumbers.sort((a, b) => 
-          SUBJECTS_ORDER.indexOf(a.subject) - SUBJECTS_ORDER.indexOf(b.subject)
-        );
-        console.log("✅ Grades procesadas y ordenadas:", sortedGrades);
+        const sortedGrades = [...gradesWithNumbers].sort((a, b) => {
+          let idxA = SUBJECTS_ORDER.indexOf(a.subject);
+          let idxB = SUBJECTS_ORDER.indexOf(b.subject);
+          // Si la materia no está en la lista, ponerla al final
+          if (idxA === -1) idxA = 99;
+          if (idxB === -1) idxB = 99;
+          return idxA - idxB;
+        });
+        logger.debug("Grades procesadas y ordenadas", { sortedGrades }); // Envolver en objeto para mayor claridad del linter
         setGrades(sortedGrades);
       } catch (err) {
-        console.error("Error fetching grades:", err);
+        logger.error("Error fetching grades:", err);
         // Construir mensaje con prioridad, y detectar fallos de conexión
         let msg = err.response?.data?.msg || err.message || "No se pudieron cargar las calificaciones.";
         if (err.code === 'ECONNREFUSED' || msg.toLowerCase().includes('network error')) {
@@ -61,44 +73,38 @@ export default function StudentGrades() {
   }, []);
 
   const manualRefresh = async () => {
-    console.log('🔄 Limpieza manual iniciada...');
+    logger.info('🔄 Limpieza manual iniciada...');
     try {
-      // Limpiar localStorage
-      localStorage.clear();
-      console.log('✅ localStorage limpiado');
-      
-      // Limpiar sessionStorage
-      sessionStorage.clear();
-      console.log('✅ sessionStorage limpiado');
-      
+      // Solo limpiamos el caché de red y service workers, manteniendo la sesión (localStorage)
       // Limpiar service worker cache
       if (window.caches) {
-        const cacheNames = await caches.keys();
-        await Promise.all(cacheNames.map(name => caches.delete(name)));
-        console.log('✅ Service worker cache limpiado');
+        const cacheNames = await window.caches.keys();
+        await Promise.all(cacheNames.map(name => window.caches.delete(name)));
+        logger.debug('✅ Service worker cache limpiado');
       }
       
       // Esperar un momento y recargar
       setTimeout(() => {
-        console.log('🔄 Recargando página...');
+        logger.info('🔄 Recargando página...');
         window.location.reload();
       }, 500);
     } catch (e) {
-      console.error('Error durante limpieza:', e);
+      logger.error('Error durante limpieza:', e);
       window.location.reload();
     }
   };
-  if (error)
+  if (error) {
     return (
       <div className="container" style={{ padding: "20px", textAlign: 'center' }}>
         <p style={{ color: "red", fontWeight: 'bold' }}>{error}</p>
         <button onClick={manualRefresh} style={{ marginTop: '1rem', backgroundColor: '#3b82f6', color: 'white', padding: '8px 16px', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
-          🔄 Limpiar caché e intentar de nuevo
+          <RotateCcw size={16} className="inline mr-2" /> Limpiar caché e intentar de nuevo
         </button>
       </div>
     );
+  }
 
-  if (loading || grades.length === 0 && !error) {
+  if (loading || (grades.length === 0 && !error)) {
     // sólo mostramos el mensaje vacío si no hubo error (evitamos sobrescribir
     // el texto de error cuando la API devuelve una lista vacía)
     return (
@@ -108,7 +114,7 @@ export default function StudentGrades() {
           <p>{loading ? "Cargando calificaciones..." : "No tienes calificaciones registradas aún."}</p>
           {!loading && (
             <button onClick={manualRefresh} style={{ marginTop: '1rem', backgroundColor: '#3b82f6', color: 'white', padding: '8px 16px', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
-              🔄 Limpiar caché e intentar de nuevo
+              <RotateCcw size={16} className="inline mr-2" /> Limpiar caché e intentar de nuevo
             </button>
           )}
         </div>
@@ -140,7 +146,23 @@ export default function StudentGrades() {
 
   return (
     <div className="container" style={{ padding: "20px" }}>
-      <h1 style={{ textAlign: "center", marginBottom: 20 }}>Boletín de Calificaciones</h1>
+      <div style={{ textAlign: "center", marginBottom: 30 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginBottom: 10 }}>
+          <GraduationCap size={40} style={{ color: '#1f7a4a' }} />
+          <h1 style={{ margin: 0 }}>Boletín de Calificaciones</h1>
+        </div>
+        
+        {student && (
+          <div className="card" style={{ display: 'inline-block', padding: '10px 20px', background: '#f8fafc' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center' }}>
+              <User size={16} /> <strong>{student.name}</strong>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center', fontSize: '0.9rem', color: '#64748b' }}>
+              <Mail size={14} /> {student.email}
+            </div>
+          </div>
+        )}
+      </div>
       
       {/* Display each period */}
       {sortedPeriods.map((period) => {

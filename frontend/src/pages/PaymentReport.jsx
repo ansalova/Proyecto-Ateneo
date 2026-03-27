@@ -2,7 +2,8 @@ import { useContext, useEffect, useState } from 'react'
 import { AuthContext } from '../context/AuthContext'
 import API from '../services/api'
 import { updateOrderStatus } from '../services/payments'
-import { Download, Filter, Calendar, Check, X, Mail, IdCard, BookOpen, Users } from 'lucide-react'
+import logger from '../utils/logger'
+import { Download, Filter, Calendar, Check, X, Mail, IdCard, BookOpen, Users, TrendingUp, DollarSign, CreditCard, Landmark, Search } from 'lucide-react'
 
 export default function PaymentReport() {
   const { user } = useContext(AuthContext)
@@ -96,10 +97,24 @@ export default function PaymentReport() {
   }
 
   return (
-    <div style={{ padding: 24, maxWidth: 1200, margin: '0 auto' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
-        <Calendar size={32} style={{ color: '#16a34a' }} />
-        <h1 style={{ margin: 0 }}>Reporte de pagos</h1>
+    <div style={{ padding: '40px 24px', maxWidth: 1400, margin: '0 auto', background: '#f8fafc', minHeight: '100vh' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 40 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <div style={{ background: '#16a34a', width: 56, height: 56, borderRadius: 16, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 10px 15px -3px rgba(22, 163, 74, 0.2)' }}>
+            <Calendar size={32} />
+          </div>
+          <div>
+            <h1 style={{ margin: 0, fontSize: '32px', color: '#1e293b', fontWeight: '800' }}>Gestión de Recaudos</h1>
+            <p style={{ margin: 0, color: '#64748b' }}>Monitoreo y validación de ingresos institucionales</p>
+          </div>
+        </div>
+        <button
+          className="button"
+          onClick={handleDownloadCSV}
+          style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#1e293b' }}
+        >
+          <Download size={18} /> Exportar Reporte (CSV)
+        </button>
       </div>
 
       {error && (
@@ -131,9 +146,9 @@ export default function PaymentReport() {
       )}
 
       {/* Filtros */}
-      <div className="card" style={{ marginBottom: 24, background: '#f9fafb' }}>
+      <div className="card" style={{ marginBottom: 40, border: '1px solid #e2e8f0', borderRadius: '20px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
         <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 16px 0' }}>
-          <Filter size={20} /> Filtros
+          <Filter size={20} style={{ color: '#16a34a' }} /> Parámetros de Búsqueda
         </h3>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
           <div>
@@ -173,7 +188,7 @@ export default function PaymentReport() {
         </div>
         <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
           <button className="button" onClick={handleApplyFilter}>
-            Aplicar Filtros
+            Buscar
           </button>
           <button
             className="button"
@@ -190,31 +205,42 @@ export default function PaymentReport() {
 
       {/* Resumen */}
       {report?.summary && (
-        <div className="card" style={{ marginBottom: 24, background: '#f0fdf4' }}>
-          <h3 style={{ margin: '0 0 16px 0' }}>Resumen</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
-            <div>
-              <p style={{ margin: 0, opacity: 0.7 }}>Total de Transacciones</p>
-              <h4 style={{ margin: '8px 0 0 0', fontSize: 24 }}>{report.summary.total}</h4>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 20, marginBottom: 32 }}>
+          <div className="card" style={{ border: 'none', borderLeft: '5px solid #3b82f6', display: 'flex', alignItems: 'center', gap: 16, padding: '24px', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
+            <div style={{ background: '#eff6ff', width: 48, height: 48, borderRadius: '12px', color: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <TrendingUp size={24} />
             </div>
             <div>
-              <p style={{ margin: 0, opacity: 0.7 }}>Monto Total</p>
-              <h4 style={{ margin: '8px 0 0 0', fontSize: 24 }}>
-                ${report.summary.totalAmount.toFixed(2)}
-              </h4>
+              <p style={{ margin: 0, color: '#64748b', fontSize: '0.85rem', fontWeight: 600 }}>TRANSACCIONES</p>
+              <h4 style={{ margin: 0, fontSize: 24 }}>{report.summary.total}</h4>
+            </div>
+          </div>
+          <div className="card" style={{ border: 'none', borderLeft: '5px solid #16a34a', display: 'flex', alignItems: 'center', gap: 16, padding: '24px', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
+            <div style={{ background: '#f0fdf4', width: 48, height: 48, borderRadius: '12px', color: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <DollarSign size={24} />
             </div>
             <div>
-              <p style={{ margin: 0, opacity: 0.7 }}>Método: Mercado Pago</p>
-              <h4 style={{ margin: '8px 0 0 0', fontSize: 24 }}>
-                {report.summary.byMethod?.mp || 0}
-              </h4>
+              <p style={{ margin: 0, color: '#64748b', fontSize: '0.85rem', fontWeight: 600 }}>TOTAL RECAUDADO</p>
+              <h4 style={{ margin: 0, fontSize: 24 }}>${report.summary.totalAmount.toLocaleString('es-CO')}</h4>
+            </div>
+          </div>
+          <div className="card" style={{ border: 'none', borderLeft: '5px solid #0b63f6', display: 'flex', alignItems: 'center', gap: 16, padding: '24px', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
+            <div style={{ background: '#eff6ff', width: 48, height: 48, borderRadius: '12px', color: '#0b63f6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <CreditCard size={24} />
             </div>
             <div>
-              <p style={{ margin: 0, opacity: 0.7 }}>Método: Offline</p>
-              <h4 style={{ margin: '8px 0 0 0', fontSize: 24 }}>
-                {(report.summary.byMethod?.nequi || 0) +
-                  (report.summary.byMethod?.daviplata || 0) +
-                  (report.summary.byMethod?.oficina || 0)}
+              <p style={{ margin: 0, color: '#64748b', fontSize: '0.85rem', fontWeight: 600 }}>PAGOS ONLINE</p>
+              <h4 style={{ margin: 0, fontSize: 24 }}>{report.summary.byMethod?.mp || 0}</h4>
+            </div>
+          </div>
+          <div className="card" style={{ border: 'none', borderLeft: '5px solid #ca8a04', display: 'flex', alignItems: 'center', gap: 16, padding: '24px', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
+            <div style={{ background: '#fef3c7', width: 48, height: 48, borderRadius: '12px', color: '#ca8a04', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Landmark size={24} />
+            </div>
+            <div>
+              <p style={{ margin: 0, color: '#64748b', fontSize: '0.85rem', fontWeight: 600 }}>PAGOS OFFLINE</p>
+              <h4 style={{ margin: 0, fontSize: 24 }}>
+                {(report.summary.byMethod?.nequi || 0) + (report.summary.byMethod?.daviplata || 0) + (report.summary.byMethod?.oficina || 0)}
               </h4>
             </div>
           </div>
@@ -222,44 +248,39 @@ export default function PaymentReport() {
       )}
 
       {/* Tabla de Pagos */}
-      <div className="card">
+      <div className="card" style={{ padding: 0, border: '1px solid #e2e8f0', overflow: 'hidden' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <h2>Transacciones detalladas</h2>
-          <button
-            className="button"
-            onClick={handleDownloadCSV}
-            style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-          >
-            <Download size={16} /> Descargar CSV
-          </button>
+          <div style={{ padding: '20px' }}>
+            <h2 style={{ margin: 0, fontSize: '18px' }}>Historial Detallado de Transacciones</h2>
+          </div>
         </div>
 
         <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
-            <thead style={{ background: '#f3f4f6' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
               <tr>
-                <th style={{ padding: 12, textAlign: 'left', borderBottom: '1px solid #e5e7eb' }}>Referencia</th>
-                <th style={{ padding: 12, textAlign: 'left', borderBottom: '1px solid #e5e7eb' }}>Usuario</th>
-                <th style={{ padding: 12, textAlign: 'right', borderBottom: '1px solid #e5e7eb' }}>Monto</th>
-                <th style={{ padding: 12, textAlign: 'left', borderBottom: '1px solid #e5e7eb' }}>Método</th>
-                <th style={{ padding: 12, textAlign: 'left', borderBottom: '1px solid #e5e7eb' }}>Estado</th>
-                <th style={{ padding: 12, textAlign: 'left', borderBottom: '1px solid #e5e7eb' }}>Fecha</th>
+                <th style={{ padding: '16px', textAlign: 'left', color: '#64748b', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase' }}>Referencia</th>
+                <th style={{ padding: '16px', textAlign: 'left', color: '#64748b', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase' }}>Estudiante / Usuario</th>
+                <th style={{ padding: '16px', textAlign: 'right', color: '#64748b', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase' }}>Monto</th>
+                <th style={{ padding: '16px', textAlign: 'left', color: '#64748b', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase' }}>Método</th>
+                <th style={{ padding: '16px', textAlign: 'left', color: '#64748b', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase' }}>Estado</th>
+                <th style={{ padding: '16px', textAlign: 'left', color: '#64748b', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase' }}>Fecha</th>
                 {(user?.role === 'admin' || user?.role === 'teacher') && (
-                  <th style={{ padding: 12, textAlign: 'left', borderBottom: '1px solid #e5e7eb' }}>Acciones</th>
+                  <th style={{ padding: '16px', textAlign: 'center', color: '#64748b', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase' }}>Acciones</th>
                 )}
               </tr>
             </thead>
             <tbody>
               {report?.payments?.length > 0 ? (
                 report.payments.map((payment) => (
-                  <tr key={payment.id} style={{ borderBottom: '1px solid #e5e7eb', fontSize: 14 }}>
-                    <td style={{ padding: 12 }}>
-                      <code style={{ fontSize: 11, background: '#f3f4f6', padding: '2px 6px', borderRadius: 3 }}>
+                  <tr key={payment.id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                    <td style={{ padding: '16px' }}>
+                      <code style={{ fontSize: '11px', background: '#f1f5f9', padding: '4px 8px', borderRadius: '6px', color: '#475569', fontWeight: 'bold' }}>
                         {payment.external_reference}
                       </code>
                     </td>
-                    <td style={{ padding: 12 }}>
-                      <div style={{ background: '#f9fafb', padding: 10, borderRadius: 6, borderLeft: '3px solid #1f7a4a' }}>
+                    <td style={{ padding: '16px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column' }}>
                         <div style={{ marginBottom: 4 }}>
                           <strong style={{ color: '#1e293b' }}>{payment.name}</strong>
                         </div>
@@ -303,15 +324,15 @@ export default function PaymentReport() {
                         })()}
                       </div>
                     </td>
-                    <td style={{ padding: 12, textAlign: 'right' }}>
-                      <strong>${parseFloat(payment.amount).toFixed(2)}</strong>
+                    <td style={{ padding: '16px', textAlign: 'right' }}>
+                      <strong style={{ color: '#1e293b' }}>${parseFloat(payment.amount).toLocaleString('es-CO')}</strong>
                     </td>
-                    <td style={{ padding: 12 }}>
-                      <span style={{ padding: '4px 8px', background: '#eff6ff', borderRadius: 3, fontSize: 12 }}>
-                        {payment.method}
+                    <td style={{ padding: '16px' }}>
+                      <span style={{ padding: '4px 10px', background: '#f1f5f9', borderRadius: '20px', fontSize: '12px', color: '#475569', fontWeight: '600', textTransform: 'capitalize' }}>
+                        {payment.method.replace('_', ' ')}
                       </span>
                     </td>
-                    <td style={{ padding: 12 }}>
+                    <td style={{ padding: '16px' }}>
                       <span
                         style={{
                           padding: '4px 12px',
@@ -335,12 +356,12 @@ export default function PaymentReport() {
                         {payment.status === 'completed' ? 'Pagado' : payment.status === 'pending' ? 'Pendiente' : 'No pagado'}
                       </span>
                     </td>
-                    <td style={{ padding: 12 }}>
-                      <small>{new Date(payment.created_at).toLocaleDateString('es-CO')}</small>
+                    <td style={{ padding: '16px' }}>
+                      <div style={{ fontSize: '13px', color: '#64748b' }}>{new Date(payment.created_at).toLocaleDateString('es-CO')}</div>
                     </td>
                     {(user?.role === 'admin' || user?.role === 'teacher') && (
-                      <td style={{ padding: 12 }}>
-                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                      <td style={{ padding: '16px' }}>
+                        <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
                           {payment.status === 'pending' && (
                             <button
                               className="button"
@@ -349,14 +370,14 @@ export default function PaymentReport() {
                               onClick={async () => {
                                 try {
                                   setUpdatingOrder(payment.external_reference)
-                                  console.log('Marcando como pagado:', payment.external_reference)
+                                  logger.info('Marcando como pagado:', payment.external_reference)
                                   await updateOrderStatus(payment.external_reference, 'completed')
-                                  console.log('✅ Actualizado exitosamente')
+                                  logger.debug('✅ Actualizado exitosamente')
                                   setSuccessMsg(`Pago de ${payment.name} marcado como pagado`)
                                   setTimeout(() => setSuccessMsg(''), 3000)
                                   await fetchReport(filters)
                                 } catch (err) {
-                                  console.error('❌ Error marcando como pagado:', err.response?.data || err.message)
+                                  logger.error('Error marcando como pagado:', err.response?.data || err.message)
                                   setError(`Error: ${err.response?.data?.error || err.response?.data?.message || err.message}`)
                                 } finally {
                                   setUpdatingOrder(null)
@@ -375,14 +396,14 @@ export default function PaymentReport() {
                               onClick={async () => {
                                 try {
                                   setUpdatingOrder(payment.external_reference)
-                                  console.log('Marcando como no pagado:', payment.external_reference)
+                                  logger.info('Marcando como no pagado:', payment.external_reference)
                                   await updateOrderStatus(payment.external_reference, 'failed')
-                                  console.log('✅ Actualizado exitosamente')
+                                  logger.debug('✅ Actualizado exitosamente')
                                   setSuccessMsg(`Pago de ${payment.name} marcado como no pagado`)
                                   setTimeout(() => setSuccessMsg(''), 3000)
                                   await fetchReport(filters)
                                 } catch (err) {
-                                  console.error('❌ Error marcando como no pagado:', err.response?.data || err.message)
+                                  logger.error('Error marcando como no pagado:', err.response?.data || err.message)
                                   setError(`Error: ${err.response?.data?.error || err.response?.data?.message || err.message}`)
                                 } finally {
                                   setUpdatingOrder(null)

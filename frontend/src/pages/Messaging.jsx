@@ -1,16 +1,35 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useContext } from 'react'
+import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import { AuthContext } from '../context/AuthContext'
-import { Send, X, Check, Loader2, UserCircle, ArrowLeft } from 'lucide-react'
+import { Send, X, Check, Loader2, UserCircle, ArrowLeft, Smile, Mail, Trash2, Search, Paperclip, MoreVertical, CheckCheck, MessageSquare as MessageSquareIcon } from 'lucide-react'
 import ConfirmModal from '../components/ConfirmModal'
+import AlertModal from '../components/AlertModal'
+import UserProfilePanel from './UserProfilePanel' // Nuevo componente
 
 export default function Messaging() {
   const { user } = useContext(AuthContext)
-  const [showCompose, setShowCompose] = useState(false)
+  const navigate = useNavigate()
   const [unreadCount, setUnreadCount] = useState(0)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [messages, setMessages] = useState([])
+  const [loadingMessages, setLoadingMessages] = useState(true)
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false)
+  const [selectedFile, setSelectedFile] = useState(null)
+  const [activeTab, setActiveTab] = useState('contacts') // 'contacts' o 'chat' en móvil
+  const [showChatSearch, setShowChatSearch] = useState(false)
+  const [chatSearchTerm, setChatSearchTerm] = useState('')
+  const [showChatMenu, setShowChatMenu] = useState(false)
+  const [showSidebarMenu, setShowSidebarMenu] = useState(false)
+  
+  // Estados para Modales y Paneles Profesionales
+  const [showProfilePanel, setShowProfilePanel] = useState(false)
+  const [deleteOptionsOpen, setDeleteOptionsOpen] = useState(false)
+  const [messageForDelete, setMessageForDelete] = useState(null)
+  const [infoModalOpen, setInfoModalOpen] = useState(false)
+  const [infoModalContent, setInfoModalContent] = useState({ title: '', message: '' })
 
   const [composeData, setComposeData] = useState({
     recipientId: '',
@@ -20,6 +39,7 @@ export default function Messaging() {
   })
 
   const [availableUsers, setAvailableUsers] = useState([])
+  const [profilePanelUserId, setProfilePanelUserId] = useState(null) // Estado para guardar el ID del usuario cuyo perfil se está viendo
   const [searchUsers, setSearchUsers] = useState('')
   const [loadingUsers, setLoadingUsers] = useState(false)
   const [isSending, setIsSending] = useState(false)
@@ -27,23 +47,32 @@ export default function Messaging() {
   const [contentPreview, setContentPreview] = useState('')
 
   const contentRef = useRef(null)
+  const messagesEndRef = useRef(null)
+  const fileInputRef = useRef(null)
+  const searchInputRef = useRef(null)
 
-  // Load unread count on mount
+  // Emojis populares para el selector
+  const commonEmojis = ['😊', '👍', '🙌', '🚀', '📚', '✅', '📍', '💡', '🎉', '👋'];
+
+  // Auto-scroll al final del chat
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }
+
   useEffect(() => {
-    console.log('Messaging mounted - loading unread count')
+    if (composeData.recipientId) scrollToBottom()
+  }, [messages, composeData.recipientId])
+
+  // Load data on mount
+  useEffect(() => {
     fetchUnreadCount()
+    fetchMessages()
   }, [])
 
-  // Load users when compose opens
+  // Cargar usuarios al inicio para el sidebar
   useEffect(() => {
-    if (showCompose) {
-      console.log('Compose modal opened - loading users')
-      setAvailableUsers([])
-      setSearchUsers('')
-      setError('')
-      fetchAvailableUsers('')
-    }
-  }, [showCompose])
+    fetchAvailableUsers('')
+  }, [])
 
   // Live preview
   useEffect(() => {
@@ -56,21 +85,43 @@ export default function Messaging() {
       const response = await api.get('/api/messages/unread/count')
       setUnreadCount(response.data.count || 0)
     } catch (err) {
-      console.error('fetchUnreadCount error:', err)
+      console.error('fetchUnreadCount:', err)
+    }
+  }
+
+  const fetchMessages = async (targetId = null) => {
+    try {
+      setLoadingMessages(true)
+      // Si hay un targetId, filtramos la conversación con ese usuario
+      const url = targetId ? `/api/messages/?folder=inbox&contactId=${targetId}` : '/api/messages/?folder=inbox'
+      const response = await api.get(url)
+      const data = response.data || []
+      setMessages(data)
+
+      // Auto-marcar como leídos los mensajes recibidos en esta conversación
+      if (targetId) {
+        const unread = data.filter(m => !m.is_read && m.recipient_id === user?.id)
+        unread.forEach(m => api.put(`/api/messages/${m.id}/read`).catch(() => {}))
+        if (unread.length > 0) fetchUnreadCount()
+      }
+    } catch (err) {
+      console.error('fetchMessages:', err)
+      setError('Error cargando mensajes')
+    } finally {
+      setLoadingMessages(false)
     }
   }
 
   const fetchAvailableUsers = async (search = '') => {
     try {
       setLoadingUsers(true)
-      setError('')
       const url = search.trim() 
         ? `/api/messages/users/available?search=${encodeURIComponent(search)}`
         : '/api/messages/users/available'
       const response = await api.get(url)
       setAvailableUsers(Array.isArray(response.data) ? response.data : [])
     } catch (err) {
-      console.error('fetchAvailableUsers error:', err)
+      console.error('fetchAvailableUsers:', err)
       setError('Error al cargar usuarios')
       setAvailableUsers([])
     } finally {
@@ -79,12 +130,18 @@ export default function Messaging() {
   }
 
   const handleSelectUser = (selectedUser) => {
+    setShowChatSearch(false)
+    setChatSearchTerm('')
+    setShowChatMenu(false)
+    setShowSidebarMenu(false)
     setComposeData({
       recipientId: selectedUser.id,
       recipientName: `${selectedUser.name} (${selectedUser.role === 'teacher' ? 'Profesor' : selectedUser.role === 'admin' ? 'Admin' : 'Estudiante'})`,
       subject: '',
       content: ''
     })
+    fetchMessages(selectedUser.id)
+    setActiveTab('chat')
   }
 
   const handleSearchUsers = (e) => {
@@ -97,6 +154,7 @@ export default function Messaging() {
     e.preventDefault()
     if (isSending) return
 
+    const targetId = composeData.recipientId
     if (!composeData.recipientId) {
       setError('Selecciona destinatario')
       return
@@ -109,10 +167,11 @@ export default function Messaging() {
     try {
       setIsSending(true)
       await api.post('/api/messages/send', composeData)
-      setComposeData({ recipientId: '', recipientName: '', subject: '', content: '' })
-      setShowCompose(false)
+      setComposeData(prev => ({ ...prev, subject: '', content: '' }))
       setSuccess('Mensaje enviado ✓')
       setTimeout(() => setSuccess(''), 3000)
+      fetchMessages(targetId)
+      setSelectedFile(null)
       fetchUnreadCount()
     } catch (err) {
       setError(err.response?.data?.msg || 'Error envío')
@@ -138,265 +197,493 @@ export default function Messaging() {
     }
   }, [composeData.content])
 
-  const addEmoji = useCallback(() => {
+  const addEmoji = (emoji) => {
     const textarea = contentRef.current
     if (textarea && 'selectionStart' in textarea) {
       const start = textarea.selectionStart || 0
-      const emoji = '😊 '
-      const newContent = composeData.content.slice(0, start) + emoji + composeData.content.slice(start)
+      const newContent = composeData.content.slice(0, start) + emoji + ' ' + composeData.content.slice(start)
       setComposeData({...composeData, content: newContent})
+      setShowEmojiPicker(false)
+      // Devolver el foco al textarea
+      setTimeout(() => textarea.focus(), 10)
     }
-  }, [composeData.content])
+  }
+
+  const handleFileClick = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0]
+    if (file) {
+      setSelectedFile(file)
+      setSuccess(`Archivo seleccionado: ${file.name}`)
+      setTimeout(() => setSuccess(''), 3000)
+    }
+  }
+
+  const handleMarkAsRead = async (messageId) => {
+    try {
+      await api.put(`/api/messages/${messageId}/read`)
+      fetchMessages()
+      fetchUnreadCount()
+    } catch (err) {
+      console.error('markAsRead:', err)
+    }
+  }
+
+  const handleDeleteClick = (msg) => {
+    setMessageForDelete(msg)
+    setDeleteOptionsOpen(true)
+  }
+
+  const confirmDelete = async (mode = 'me') => {
+    if (!messageForDelete) return
+    try {
+      await api.delete(`/api/messages/${messageForDelete.id}?mode=${mode}`)
+      fetchMessages(composeData.recipientId)
+    } catch (err) {
+      console.error('delete:', err)
+    } finally {
+      setDeleteOptionsOpen(false)
+      setMessageForDelete(null)
+    }
+  }
+
+  const showUserInfo = () => {
+    // Restringir el acceso a perfiles detallados solo para profesores y admins
+    if (user?.role !== 'teacher' && user?.role !== 'admin') {
+      setInfoModalContent({
+        title: 'Acceso Restringido',
+        message: 'Por políticas de privacidad y protección de datos, la información detallada de los usuarios solo es visible para el personal docente y administrativo.'
+      });
+      setInfoModalOpen(true);
+      return;
+    }
+
+    if (composeData.recipientId) {
+      setProfilePanelUserId(composeData.recipientId)
+      setShowProfilePanel(true)
+    }
+  }
+
+  // Cerrar el panel de perfil cuando el destinatario cambia o el chat se cierra
+  useEffect(() => {
+    if (!composeData.recipientId) {
+      setShowProfilePanel(false)
+      setProfilePanelUserId(null)
+    }
+  }, [composeData.recipientId])
+
+  // Filtrar mensajes según el término de búsqueda en el chat
+  const filteredMessages = useMemo(() => {
+    if (!chatSearchTerm.trim()) return messages
+    return messages.filter(m => 
+      m.content.toLowerCase().includes(chatSearchTerm.toLowerCase())
+    )
+  }, [messages, chatSearchTerm])
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-4 md:p-8">
-      <div className="max-w-6xl mx-auto">
-        <header className="bg-white/80 backdrop-blur-md shadow-xl rounded-3xl p-8 mb-8 border border-white/50">
-          <div className="flex flex-col lg:flex-row gap-6 items-start lg:items-center justify-between">
-            <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent mb-2">Mensajes</h1>
-              <p className="text-2xl text-gray-600 flex items-center gap-2">
-                {unreadCount > 0 && (
-                  <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center text-white text-xs font-bold animate-pulse">
-                    {unreadCount}
+    <div className="messaging-layout" style={{ 
+      height: 'calc(100vh - 120px)', 
+      display: 'flex', 
+      background: '#f0f2f5',
+      borderRadius: '12px',
+      overflow: 'hidden',
+      boxShadow: '0 12px 24px rgba(0,0,0,0.1)',
+      margin: '20px auto',
+      maxWidth: '1200px'
+    }}>
+      {/* SIDEBAR: Lista de Contactos */}
+      <div className={`sidebar ${activeTab === 'chat' ? 'mobile-hidden' : ''}`} style={{
+        width: '350px',
+        background: '#fff',
+        borderRight: '1px solid #e5e7eb',
+        display: 'flex',
+        flexDirection: 'column'
+      }}>
+        <header style={{ padding: '16px', background: '#f0f2f5', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div 
+            style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#1f7a4a', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            className="cursor-pointer"
+            title="Ir a mi perfil"
+            onClick={() => navigate('/perfil')}
+          >
+            <UserCircle size={24} />
+          </div>
+          <div style={{ display: 'flex', gap: '16px', color: '#54656f', position: 'relative' }}>
+            <MessageSquareIcon 
+              size={22} 
+              className="cursor-pointer" 
+              title="Nuevo chat" 
+              onClick={() => {
+                setComposeData({ recipientId: '', recipientName: '', subject: '', content: '' });
+                searchInputRef.current?.focus();
+              }} 
+            />
+            <div style={{ position: 'relative' }}>
+              <MoreVertical 
+                size={22} 
+                className="cursor-pointer" 
+                title="Opciones" 
+                onClick={() => setShowSidebarMenu(!showSidebarMenu)} 
+              />
+              {showSidebarMenu && (
+                <div style={{
+                  position: 'absolute',
+                  top: '30px',
+                  right: '0',
+                  background: '#fff',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                  borderRadius: '4px',
+                  padding: '8px 0',
+                  zIndex: 100,
+                  width: '180px'
+                }}>
+                  <div 
+                    className="menu-item"
+                    style={{ padding: '8px 16px', fontSize: '14px', cursor: 'pointer' }}
+                    onClick={() => {
+                      fetchAvailableUsers();
+                      setShowSidebarMenu(false);
+                    }}
+                  >
+                    Actualizar contactos
                   </div>
-                )}
-                mensajes sin leer
-              </p>
+                  <div 
+                    className="menu-item"
+                    style={{ padding: '8px 16px', fontSize: '14px', cursor: 'pointer', borderTop: '1px solid #f0f2f5' }}
+                    onClick={() => navigate('/perfil')}
+                  >
+                    Configuración de perfil
+                  </div>
+                </div>
+              )}
             </div>
-            <button
-              onClick={() => setShowCompose(true)}
-              className="group bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white px-10 py-4 rounded-2xl font-bold shadow-2xl hover:shadow-3xl hover:-translate-y-1 transition-all duration-300 flex items-center gap-3 ring-2 ring-emerald-400/50"
-            >
-              <Send size={24} />
-              Nuevo Mensaje
-            </button>
           </div>
         </header>
 
-        {success && (
-          <div className="mb-8 p-6 bg-emerald-50 border border-emerald-200 rounded-2xl shadow-lg">
-            <div className="flex items-center gap-3">
-              <Check className="text-emerald-600" />
-              <p className="font-semibold text-emerald-800">{success}</p>
-            </div>
+        <div style={{ padding: '8px 16px' }}>
+          <div className="search-container" style={{ background: '#f0f2f5', borderRadius: '8px', display: 'flex', alignItems: 'center', padding: '0 12px' }}>
+            <Search size={18} color="#54656f" />
+            <input 
+              ref={searchInputRef}
+              placeholder="Busca un contacto..." 
+              value={searchUsers}
+              onChange={handleSearchUsers}
+              style={{ border: 'none', background: 'transparent', padding: '10px', width: '100%', outline: 'none', fontSize: '14px' }} 
+            />
           </div>
-        )}
+        </div>
 
-        {error && (
-          <div className="mb-8 p-6 bg-red-50 border border-red-200 rounded-2xl shadow-lg">
-            <div className="flex items-center gap-3">
-              <X className="text-red-600" />
-              <p className="font-semibold text-red-800">{error}</p>
-            </div>
-          </div>
-        )}
-
-        {showCompose && (
-          <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/50 p-8 mb-12">
-            <div className="flex justify-between items-center mb-8 pb-6 border-b border-gray-200">
-              <h2 className="text-2xl font-bold text-gray-900">✉️ Nuevo Mensaje</h2>
-              <button
-                onClick={() => {
-                  setShowCompose(false)
-                  setComposeData({ recipientId: '', recipientName: '', subject: '', content: '' })
-                }}
-                className="p-2 hover:bg-gray-200 rounded-xl"
-              >
-                <X size={24} className="text-gray-600" />
-              </button>
-            </div>
-
-            {!composeData.recipientId ? (
-              <div>
-                <div className="flex items-center gap-3 mb-6 p-4 bg-indigo-50 rounded-2xl">
-                  <Search size={24} className="text-indigo-600" />
-                  <input
-                    type="text"
-                    placeholder="🔍 Buscar por nombre o email..."
-                    value={searchUsers}
-                    onChange={handleSearchUsers}
-                    className="flex-1 bg-transparent text-xl placeholder-gray-500 outline-none"
-                  />
+        <div className="contacts-list" style={{ flex: 1, overflowY: 'auto' }}>
+          {loadingUsers ? (
+            <div style={{ padding: '20px', textAlign: 'center' }}><Loader2 className="animate-spin inline" /></div>
+          ) : availableUsers.map(u => (
+            <div 
+              key={u.id} 
+              onClick={() => handleSelectUser(u)}
+              className={`contact-item ${composeData.recipientId === u.id ? 'active' : ''}`}
+              style={{
+                padding: '12px 16px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                cursor: 'pointer',
+                borderBottom: '1px solid #f0f2f5',
+                background: composeData.recipientId === u.id ? '#f0f2f5' : 'transparent'
+              }}
+            >
+              <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#ccc', flexShrink: 0 }}>
+                <UserCircle size={48} color="#999" />
+              </div>
+              <div style={{ flex: 1, overflow: 'hidden' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <strong style={{ fontSize: '16px' }}>{u.name}</strong>
+                  <small style={{ color: '#667781' }}>{u.role === 'teacher' ? 'Prof' : 'Est'}</small>
                 </div>
+                <p style={{ margin: 0, fontSize: '14px', color: '#667781', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {u.email}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
 
-                <div className="max-h-96 overflow-y-auto space-y-3">
-                  {loadingUsers ? (
-                    <div className="flex items-center justify-center py-12">
-                      <Loader2 size={32} className="animate-spin text-indigo-600 mr-3" />
-                      <span>Cargando contactos...</span>
-                    </div>
-                  ) : availableUsers.length > 0 ? (
-                    availableUsers.map((u) => (
-                      <button
-                        key={u.id}
-                        type="button"
-                        onClick={() => handleSelectUser(u)}
-                        className="group w-full p-6 bg-white border border-gray-200 rounded-2xl hover:bg-indigo-50 hover:border-indigo-300 hover:shadow-xl transition-all"
+      {/* CHAT WINDOW */}
+      <div className={`chat-window ${activeTab === 'contacts' && !composeData.recipientId ? 'mobile-hidden' : ''}`} style={{
+        flex: 1,
+        background: '#efeae2', // Color fondo WhatsApp
+        display: 'flex',
+        flexDirection: 'column',
+        position: 'relative'
+      }}>
+        {!composeData.recipientId ? (
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', opacity: 0.6 }}>
+             <div style={{ width: '200px', height: '200px', background: '#ddd', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px' }}>
+                <Mail size={100} color="#666" />
+             </div>
+             <h2 style={{ margin: 0 }}>Ateneo Mensajes</h2>
+             <p>Selecciona un contacto para empezar a chatear.</p>
+          </div>
+        ) : (
+          <>
+            <header style={{ padding: '10px 16px', background: '#f0f2f5', display: 'flex', alignItems: 'center', gap: '12px', borderBottom: '1px solid #e5e7eb' }}>
+              <ArrowLeft className="desktop-hidden cursor-pointer" onClick={() => setActiveTab('contacts')} />
+              <div 
+                style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#ccc' }}
+                className="cursor-pointer"
+                title="Ver información de contacto"
+                onClick={showUserInfo}
+              >
+                <UserCircle size={40} color="#999" />
+              </div>
+              <div style={{ flex: 1 }}>
+                <h4 style={{ margin: 0 }}>{composeData.recipientName.split('(')[0]}</h4>
+                <small style={{ color: '#667781' }}>En línea</small>
+              </div>
+              
+              {showChatSearch && (
+                <div style={{ background: '#fff', borderRadius: '4px', padding: '2px 8px', display: 'flex', alignItems: 'center', boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.1)' }}>
+                  <input 
+                    autoFocus
+                    placeholder="Buscar en el chat..." 
+                    value={chatSearchTerm}
+                    onChange={(e) => setChatSearchTerm(e.target.value)}
+                    style={{ border: 'none', outline: 'none', fontSize: '13px', width: '120px' }}
+                  />
+                  <X size={14} color="#54656f" className="cursor-pointer" onClick={() => { setShowChatSearch(false); setChatSearchTerm(''); }} />
+                </div>
+              )}
+
+              <div style={{ display: 'flex', gap: '16px', position: 'relative' }}>
+                <Search 
+                  size={20} 
+                  color={showChatSearch ? "#1f7a4a" : "#54656f"} 
+                  className="cursor-pointer" 
+                  title="Buscar en chat"
+                  onClick={() => setShowChatSearch(!showChatSearch)} 
+                />
+                <div style={{ position: 'relative' }}>
+                  <MoreVertical 
+                    size={20} 
+                    color={showChatMenu ? "#1f7a4a" : "#54656f"} 
+                    className="cursor-pointer" 
+                    title="Opciones"
+                    onClick={() => setShowChatMenu(!showChatMenu)}
+                  />
+                  
+                  {showChatMenu && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '30px',
+                      right: '0',
+                      background: '#fff',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                      borderRadius: '4px',
+                      padding: '8px 0',
+                      zIndex: 100,
+                      width: '160px'
+                    }}>
+                      <div 
+                        className="menu-item"
+                        style={{ padding: '8px 16px', fontSize: '14px', cursor: 'pointer' }}
+                        onClick={() => {
+                          setComposeData({ recipientId: '', recipientName: '', subject: '', content: '' });
+                          setShowChatMenu(false);
+                        }}
                       >
-                        <div className="flex items-start gap-4">
-                          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br flex items-center justify-center flex-shrink-0 shadow-lg">
-                            <UserCircle size={28} className="text-white" />
-                          </div>
-                          <div className="flex-1">
-                            <h3 className="font-bold text-lg text-gray-900">{u.name}</h3>
-                            <p className="text-sm text-gray-600">{u.email}</p>
-                            <span className="inline-flex items-center gap-2 mt-2 px-3 py-1 bg-indigo-600 text-xs font-semibold text-white rounded-full">
-                              {u.role === 'teacher' ? 'Profesor' : u.role === 'admin' ? 'Admin' : 'Estudiante'}
-                            </span>
-                          </div>
-                        </div>
-                      </button>
-                    ))
-                  ) : (
-                    <div className="text-center py-16 text-gray-500">
-                      <UserCircle size={64} className="mx-auto mb-4 opacity-50" />
-                      <p>{error || 'No hay usuarios disponibles'}</p>
-                      <p className="text-sm">Empieza buscando por nombre o email</p>
+                        Cerrar chat
+                      </div>
+                      <div 
+                        className="menu-item"
+                        style={{ padding: '8px 16px', fontSize: '14px', cursor: 'pointer', color: '#ef4444', borderTop: '1px solid #f0f2f5' }}
+                        onClick={() => {
+                          setInfoModalContent({
+                            title: 'Próximamente',
+                            message: 'La función para vaciar toda la conversación estará disponible en la próxima actualización de Ateneo.'
+                          });
+                          setInfoModalOpen(true);
+                          setShowChatMenu(false);
+                        }}
+                      >
+                        Vaciar chat
+                      </div>
                     </div>
                   )}
                 </div>
               </div>
-            ) : (
-              <form onSubmit={handleSendMessage} className="space-y-6">
-                <div className="bg-indigo-500 text-white p-6 rounded-3xl shadow-2xl -mx-8 mb-8">
-                  <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center shadow-lg">
-                      <UserCircle size={32} />
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-bold">{composeData.recipientName}</h3>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setComposeData({ recipientId: '', recipientName: '', subject: '', content: '' })
-                          setSearchUsers('')
-                        }}
-                        className="flex items-center gap-2 mt-1 text-indigo-200 hover:text-white text-sm"
-                      >
-                        <ArrowLeft size={16} />
-                        Cambiar
-                      </button>
-                    </div>
-                  </div>
-                </div>
+            </header>
 
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
-                    <Mail size={20} className="text-indigo-600" />
-                    Asunto
-                  </label>
-                  <input
-                    name="subject"
-                    type="text"
-                    placeholder="Asunto del mensaje..."
-                    value={composeData.subject}
-                    onChange={(e) => setComposeData({ ...composeData, subject: e.target.value })}
-                    className="w-full px-5 py-4 border border-gray-200 rounded-2xl focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 focus:outline-none text-lg"
-                  />
-                </div>
+            <div className="messages-area" style={{ flex: 1, padding: '20px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+               {filteredMessages.map(msg => {
+                 const isOwn = msg.sender_id === user?.id;
+                 return (
+                   <div key={msg.id} style={{
+                     alignSelf: isOwn ? 'flex-end' : 'flex-start',
+                     maxWidth: '70%',
+                     background: isOwn ? '#dcf8c6' : '#fff',
+                     padding: '8px 12px',
+                     borderRadius: '8px',
+                     boxShadow: '0 1px 0.5px rgba(0,0,0,0.13)',
+                     position: 'relative',
+                     fontSize: '14.5px'
+                   }}>
+                     <div dangerouslySetInnerHTML={{ __html: msg.content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
+                     <div style={{ textAlign: 'right', marginTop: '4px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px' }}>
+                        <small style={{ fontSize: '11px', color: '#667781' }}>
+                          {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </small>
+                        {isOwn && (
+                          msg.is_read ? <CheckCheck size={14} color="#53bdeb" /> : <Check size={14} color="#667781" />
+                        )}
+                        <Trash2 
+                          size={13} 
+                          className="cursor-pointer" 
+                          color="#ef4444" 
+                          style={{ marginLeft: '8px', opacity: 0.6 }}
+                          title="Eliminar mensaje"
+                        onClick={(e) => { e.stopPropagation(); handleDeleteClick(msg); }}
+                        />
+                     </div>
+                   </div>
+                 )
+               })}
+               <div ref={messagesEndRef} />
+            </div>
 
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
-                    Mensaje ({composeData.content.length}/5000)
-                  </label>
-                  
-                  {toolbarOpen && (
-                    <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-xl mb-3 border">
-                      <button type="button" onClick={toggleBold} className="p-2 hover:bg-gray-200 rounded-lg">
-                        <Bold size={18} />
-                      </button>
-                      <button type="button" onClick={addEmoji} className="p-2 hover:bg-gray-200 rounded-lg">
-                        <Smile size={18} />
-                      </button>
-                      <div className="flex-1" />
-                      <button type="button" onClick={() => setToolbarOpen(false)} className="p-2 hover:bg-gray-200 rounded-lg text-xs">
-                        Done
-                      </button>
-                    </div>
-                  )}
-                  
-                  <div className="relative">
-                    <textarea
-                      ref={contentRef}
-                      name="content"
-                      placeholder="Escribe tu mensaje..."
-                      value={composeData.content}
-                      onChange={(e) => setComposeData({ ...composeData, content: e.target.value })}
-                      rows={8}
-                      onFocus={() => setToolbarOpen(true)}
-                      className="w-full px-5 py-6 border border-gray-200 rounded-3xl focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100 focus:outline-none resize-none min-h-[160px]"
-                    />
-                    <button
-                      type="button"
-                      onClick={toggleBold}
-                      className="absolute bottom-4 right-4 p-2 bg-white border rounded-2xl shadow-md hover:shadow-lg hover:scale-105 transition-all"
-                    >
-                      <Bold size={18} />
-                    </button>
-                  </div>
+            <footer style={{ padding: '10px 16px', background: '#f0f2f5', display: 'flex', alignItems: 'center', gap: '12px', position: 'relative' }}>
+              {/* Selector de Emojis */}
+              {showEmojiPicker && (
+                <div style={{
+                  position: 'absolute',
+                  bottom: '60px',
+                  left: '16px',
+                  background: '#fff',
+                  padding: '10px',
+                  borderRadius: '12px',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                  display: 'flex',
+                  gap: '8px',
+                  zIndex: 10
+                }}>
+                  {commonEmojis.map(e => (
+                    <span key={e} onClick={() => addEmoji(e)} style={{ cursor: 'pointer', fontSize: '20px' }}>{e}</span>
+                  ))}
                 </div>
+              )}
 
-                {composeData.content && (
-                  <div className="p-6 bg-gray-50 rounded-2xl border">
-                    <h4 className="font-bold mb-4">Preview:</h4>
-                    <div className="bg-white p-6 rounded-2xl max-h-48 overflow-y-auto border">
-                      <div dangerouslySetInnerHTML={{ __html: contentPreview }} />
-                    </div>
+              <Smile 
+                size={24} 
+                color={showEmojiPicker ? "#1f7a4a" : "#54656f"} 
+                className="cursor-pointer" 
+                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+              />
+              
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                onChange={handleFileChange} 
+                style={{ display: 'none' }} 
+              />
+              <Paperclip 
+                size={24} 
+                color={selectedFile ? "#1f7a4a" : "#54656f"} 
+                className="cursor-pointer" 
+                onClick={handleFileClick}
+              />
+
+              <div style={{ flex: 1, background: '#fff', borderRadius: '8px', padding: '5px 12px', display: 'flex', flexDirection: 'column' }}>
+                {selectedFile && (
+                  <div style={{ fontSize: '12px', color: '#1f7a4a', paddingBottom: '4px', borderBottom: '1px solid #eee', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <Paperclip size={12} /> {selectedFile.name}
+                    <X size={12} className="cursor-pointer" onClick={() => setSelectedFile(null)} />
                   </div>
                 )}
-
-                <div className="flex gap-4 pt-6 border-t border-gray-200">
-                  <button
-                    type="submit"
-                    disabled={isSending}
-                    className={`flex-1 py-4 px-8 font-bold rounded-2xl shadow-xl flex items-center justify-center gap-3 text-lg ${
-                      isSending
-                        ? 'bg-gray-400 cursor-not-allowed opacity-60'
-                        : 'bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 shadow-emerald-400/50 ring-2 ring-emerald-400/50 text-white hover:shadow-2xl'
-                    } transition-all`}
-                  >
-                    {isSending ? (
-                      <>
-                        <Loader2 className="animate-spin" size={24} />
-                        Enviando...
-                      </>
-                    ) : (
-                      <>
-                        <Send size={24} />
-                        Enviar Mensaje
-                      </>
-                    )}
-                  </button>
-                  <button
-                    type="button"
-                    disabled={isSending}
-                    onClick={() => {
-                      setComposeData({ recipientId: '', recipientName: '', subject: '', content: '' })
-                      setSearchUsers('')
-                    }}
-                    className="px-8 py-4 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold rounded-2xl shadow-lg hover:shadow-xl transition-all ring-2 ring-gray-300/50"
-                  >
-                    <X size={20} />
-                    Cancelar
-                  </button>
-                </div>
-              </form>
-            )}
-          </div>
+                <textarea 
+                  ref={contentRef}
+                  placeholder="Escribe un mensaje..."
+                  value={composeData.content}
+                  onChange={(e) => setComposeData({ ...composeData, content: e.target.value })}
+                  style={{ width: '100%', border: 'none', outline: 'none', resize: 'none', height: '24px', fontSize: '15px', paddingTop: '4px' }}
+                />
+              </div>
+              <button 
+                onClick={handleSendMessage}
+                disabled={!composeData.content.trim() || isSending}
+                style={{ background: 'transparent', border: 'none', color: '#1f7a4a', cursor: 'pointer' }}
+              >
+                {isSending ? <Loader2 className="animate-spin" /> : <Send size={24} />}
+              </button>
+            </footer>
+          </>
         )}
-
-        <ConfirmModal
-          open={confirmOpen}
-          title="🗑️ Eliminar mensaje"
-          message="Esta acción es irreversible. ¿Confirmar?"
-          onConfirm={confirmDelete}
-          onCancel={() => { 
-            setConfirmOpen(false); 
-            setToDeleteId(null) 
-          }}
-        />
       </div>
+
+      <style>{`
+        .contact-item:hover { background: #f5f6f6 !important; }
+        .menu-item:hover { background: #f5f6f6 !important; }
+        .mobile-hidden { display: flex !important; }
+        .desktop-hidden { display: none !important; }
+        @media (max-width: 768px) {
+          .mobile-hidden { display: none !important; }
+          .desktop-hidden { display: block !important; }
+          .sidebar { width: 100% !important; }
+        }
+        .animate-spin { animation: spin 1s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+      `}</style>
+
+      {/* Modales Profesionales */}
+      <AlertModal 
+        open={infoModalOpen}
+        title={infoModalContent.title}
+        message={infoModalContent.message}
+        onClose={() => setInfoModalOpen(false)}
+      />
+
+      {/* Modal Profesional de Selección de Borrado (Estilo WhatsApp) */}
+      {deleteOptionsOpen && (
+        <div className="modal-backdrop" onClick={() => setDeleteOptionsOpen(false)} style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(4px)'
+        }}>
+          <div className="modal-window" style={{ background: '#fff', borderRadius: '8px', padding: '24px', maxWidth: '320px', width: '90%', boxShadow: '0 8px 24px rgba(0,0,0,0.2)' }} onClick={e => e.stopPropagation()}>
+            <h3 style={{ margin: '0 0 20px 0', fontSize: '16px', color: '#54656f' }}>¿Deseas eliminar el mensaje?</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <button 
+                onClick={() => confirmDelete('me')}
+                style={{ width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid #e5e7eb', background: '#fff', color: '#1f7a4a', fontWeight: '600', cursor: 'pointer', textAlign: 'left' }}
+              >
+                Eliminar para mí
+              </button>
+              {messageForDelete?.sender_id === user?.id && (
+                <button 
+                  onClick={() => confirmDelete('everyone')}
+                  style={{ width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid #e5e7eb', background: '#fff', color: '#ef4444', fontWeight: '600', cursor: 'pointer', textAlign: 'left' }}
+                >
+                  Eliminar para todos
+                </button>
+              )}
+              <button 
+                onClick={() => setDeleteOptionsOpen(false)}
+                style={{ width: '100%', padding: '10px', borderRadius: '4px', border: 'none', background: 'transparent', color: '#54656f', fontWeight: '600', cursor: 'pointer', textAlign: 'right', marginTop: '8px' }}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Nuevo Panel de Perfil de Usuario */}
+      {showProfilePanel && (
+        <UserProfilePanel 
+          userId={profilePanelUserId} 
+          onClose={() => setShowProfilePanel(false)} 
+          availableUsers={availableUsers} // Pasamos availableUsers para los datos mock
+        />
+      )}
     </div>
   )
 }

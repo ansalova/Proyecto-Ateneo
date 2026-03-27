@@ -73,6 +73,9 @@ export async function getTransport() {
   return transport;
 }
 
+// Inicializar el transporte al cargar el módulo para validar la configuración inmediatamente
+getTransport().catch(err => console.error('[MAILER] ❌ Error de inicialización:', err.message));
+
 export async function sendResetEmail({ to, link }) {
   try {
     const t = await getTransport();
@@ -261,4 +264,3 @@ export async function sendPaymentInitEmail({ to, studentName, amount, method, re
     throw err;
   }
 }
-

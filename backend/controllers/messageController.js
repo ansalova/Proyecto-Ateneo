@@ -7,10 +7,27 @@ export const getMessages = async (req, res) => {
     if (!pool) throw new Error('DB_NOT_CONFIGURED')
 
     const userId = req.user.id
-    const { folder = 'inbox' } = req.query
+    const { folder = 'inbox', contactId } = req.query
 
     let query
-    if (folder === 'inbox') {
+    let params = [userId]
+
+    if (contactId) {
+      // Modo conversación: obtener mensajes entre el usuario y el contacto
+      query = `
+        SELECT m.*, 
+               u_send.name as sender_name, u_send.email as sender_email,
+               u_rec.name as recipient_name, u_rec.email as recipient_email
+        FROM messages m
+        LEFT JOIN users u_send ON m.sender_id = u_send.id
+        LEFT JOIN users u_rec ON m.recipient_id = u_rec.id
+        WHERE (m.sender_id = $1 AND m.recipient_id = $2)
+           OR (m.sender_id = $2 AND m.recipient_id = $1)
+        ORDER BY m.created_at ASC
+        LIMIT 200
+      `
+      params.push(contactId)
+    } else if (folder === 'inbox') {
       query = `
         SELECT m.*, 
                u.name as sender_name, u.email as sender_email
@@ -32,7 +49,7 @@ export const getMessages = async (req, res) => {
       `
     }
 
-    const { rows } = await pool.query(query, [userId])
+    const { rows } = await pool.query(query, params)
     res.json(rows)
   } catch (error) {
     console.error('getMessages error:', error)
@@ -139,22 +156,34 @@ export const deleteMessage = async (req, res) => {
     if (!pool) throw new Error('DB_NOT_CONFIGURED')
 
     const { id } = req.params
+    const { mode = 'me' } = req.query // 'me' o 'everyone'
     const userId = req.user.id
 
     // Verificar que es el propietario del mensaje
     const msgCheck = await pool.query(
-      'SELECT sender_id, recipient_id FROM messages WHERE id = $1',
+      'SELECT sender_id, recipient_id, created_at FROM messages WHERE id = $1',
       [id]
     )
     if (msgCheck.rows.length === 0) {
       return res.status(404).json({ msg: 'Mensaje no encontrado' })
     }
     const msg = msgCheck.rows[0]
-    if (msg.sender_id !== userId && msg.recipient_id !== userId) {
-      return res.status(403).json({ msg: 'No autorizado' })
+
+    if (mode === 'everyone') {
+      // Solo el remitente puede eliminar para todos
+      if (msg.sender_id !== userId) {
+        return res.status(403).json({ msg: 'Solo tú puedes eliminar este mensaje para todos' })
+      }
+      await pool.query('DELETE FROM messages WHERE id = $1', [id])
+    } else {
+      // Eliminar para mí
+      if (msg.sender_id !== userId && msg.recipient_id !== userId) {
+        return res.status(403).json({ msg: 'No autorizado' })
+      }
+      // Por ahora borramos el registro (lo que lo elimina de la vista).
+      await pool.query('DELETE FROM messages WHERE id = $1', [id])
     }
 
-    await pool.query('DELETE FROM messages WHERE id = $1', [id])
     res.json({ msg: 'Mensaje eliminado' })
   } catch (error) {
     console.error('deleteMessage error:', error)

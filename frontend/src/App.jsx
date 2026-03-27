@@ -194,6 +194,7 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <Messaging />
+
               </ProtectedRoute>
             }
           />

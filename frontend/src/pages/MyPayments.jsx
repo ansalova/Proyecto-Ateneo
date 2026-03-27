@@ -1,7 +1,10 @@
 import { useContext, useEffect, useState } from 'react'
+import { CartContext } from '../context/CartContext'
 import { AuthContext } from '../context/AuthContext'
 import API from '../services/api'
-import { CheckCircle, AlertCircle, Clock, CreditCard, CalendarOff } from 'lucide-react'
+import logger from '../utils/logger'
+import { CheckCircle, AlertCircle, Clock, CreditCard, CalendarOff, RotateCcw, ExternalLink, Receipt } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 
 const MESES = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -10,6 +13,8 @@ const MESES = [
 
 export default function MyPayments() {
   const { user } = useContext(AuthContext)
+  const { add } = useContext(CartContext)
+  const navigate = useNavigate()
   const [monthStatus, setMonthStatus] = useState({})
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
@@ -33,16 +38,16 @@ export default function MyPayments() {
 
       // Cargar estado de pagos (incluye past months)
       const statusRes = await API.get('/api/payments/my-status')
-      console.log('Status response:', statusRes.data)
+      logger.debug('Status response:', statusRes.data)
       setMonthStatus(statusRes.data.monthStatus || {})
       setAccountStartMonth(statusRes.data.accountStartMonth || '')
 
       // Cargar historial de órdenes
       const ordersRes = await API.get('/api/payments/orders')
-      console.log('Orders response:', ordersRes.data)
+      logger.debug('Orders response:', ordersRes.data)
       setOrders(ordersRes.data || [])
     } catch (err) {
-      console.error('Error loading payment data:', err)
+      logger.error('Error loading payment data:', err)
       const errorMsg = err.response?.data?.msg || err.response?.data?.error || err.message || 'Error desconocido'
       setError(`Error: ${errorMsg}`)
     } finally {
@@ -99,6 +104,22 @@ export default function MyPayments() {
     }
   }
 
+  const handleQuickPay = (month) => {
+    const item = {
+      id: `1_${month}`, // Generamos un ID único combinando el ID del producto y el mes
+      name: 'Mensualidad Colegio Ateneo',
+      price: 80000,
+      metadata: { month }
+    }
+    add(item)
+    navigate('/checkout')
+  }
+
+  const handleRefresh = () => {
+    logger.info('Refrescando datos de pago...')
+    loadData()
+  }
+
   if (!user) {
     return (
       <div className="card" style={{ maxWidth: 600, margin: '0 auto', padding: 24, textAlign: 'center' }}>
@@ -118,17 +139,40 @@ export default function MyPayments() {
   const pending = relevantMonths.filter(s => s === 'pending').length
   const unpaid = relevantMonths.filter(s => s === 'failed').length
   const remaining = relevantMonths.filter(s => s === 'none').length
+  const totalToPay = (unpaid + remaining) * 80000
+
+  const handlePayAll = () => {
+    // Agregamos cada mes pendiente al carrito
+    const monthsToPay = Object.entries(monthStatus)
+      .filter(([_, status]) => status === 'none' || status === 'failed')
+      .map(([month]) => month)
+    
+    monthsToPay.forEach(month => {
+      add({ id: `1_${month}`, name: 'Mensualidad Colegio Ateneo', price: 80000, metadata: { month } })
+    })
+    navigate('/checkout')
+  }
 
   return (
     <div style={{ padding: 24, maxWidth: 1000, margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
         <CreditCard size={32} style={{ color: '#0b63f6' }} />
-        <h1 style={{ margin: 0 }}>Mis pagos</h1>
-        {accountStartMonth && (
-          <small style={{ color: '#64748b', marginLeft: 'auto' }}>
-            Cuenta desde: {accountStartMonth}
-          </small>
-        )}
+        <div style={{ flex: 1 }}>
+          <h1 style={{ margin: 0 }}>Mis pagos</h1>
+          {accountStartMonth && (
+            <small style={{ color: '#64748b' }}>
+              Cuenta desde: {accountStartMonth}
+            </small>
+          )}
+        </div>
+        <button 
+          onClick={handleRefresh}
+          className="button button-outline"
+          style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 6 }}
+          title="Actualizar información"
+        >
+          <RotateCcw size={16} /> Actualizar
+        </button>
       </div>
 
       {error && (
@@ -166,6 +210,21 @@ export default function MyPayments() {
             <p style={{ margin: 0, opacity: 0.7, fontSize: '0.9rem' }}>Faltantes</p>
             <h4 style={{ margin: '8px 0 0 0', fontSize: 24, color: '#0b63f6' }}>{remaining}</h4>
           </div>
+          <div style={{ padding: 12, background: '#f8fafc', borderRadius: 8, borderLeft: '4px solid #1e293b', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gridColumn: 'span 2' }}>
+            <div>
+              <p style={{ margin: 0, opacity: 0.7, fontSize: '0.9rem' }}>Total por pagar</p>
+              <h4 style={{ margin: '4px 0 0 0', fontSize: 24, color: '#1e293b' }}>${totalToPay.toLocaleString('es-CO')}</h4>
+            </div>
+            {totalToPay > 0 && (
+              <button 
+                onClick={handlePayAll}
+                className="button"
+                style={{ background: '#1e293b', color: '#fff', padding: '10px 20px' }}
+              >
+                Pagar todo
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -177,6 +236,7 @@ export default function MyPayments() {
             const status = monthStatus[month]
             const info = getStatusInfo(status)
             const Icon = info.icon
+            const canPay = status === 'none' || status === 'failed'
 
             return (
               <div
@@ -187,24 +247,53 @@ export default function MyPayments() {
                   border: `2px solid ${info.border}`,
                   borderRadius: 8,
                   textAlign: 'center',
-                  transition: 'all 0.2s'
+                  transition: 'all 0.2s',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  minHeight: '120px'
                 }}
               >
-                <div style={{ marginBottom: 8, display: 'flex', justifyContent: 'center' }}>
-                  <Icon size={24} style={{ color: info.color }} />
+                <div>
+                  <div style={{ marginBottom: 8, display: 'flex', justifyContent: 'center' }}>
+                    <Icon size={24} style={{ color: info.color }} />
+                  </div>
+                  <div style={{ 
+                    fontWeight: 600, 
+                    color: '#1e293b', 
+                    marginBottom: 4,
+                    textDecoration: info.strike ? 'line-through' : 'none',
+                    opacity: info.strike ? 0.6 : 1
+                  }}>
+                    {month}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: info.color, fontWeight: 600 }}>
+                    {info.label}
+                  </div>
                 </div>
-                <div style={{ 
-                  fontWeight: 600, 
-                  color: '#1e293b', 
-                  marginBottom: 4,
-                  textDecoration: info.strike ? 'line-through' : 'none',
-                  opacity: info.strike ? 0.6 : 1
-                }}>
-                  {month}
-                </div>
-                <div style={{ fontSize: '0.75rem', color: info.color, fontWeight: 600 }}>
-                  {info.label}
-                </div>
+
+                {canPay && (
+                  <button 
+                    onClick={() => handleQuickPay(month)}
+                    style={{ 
+                      marginTop: 12, 
+                      padding: '6px', 
+                      fontSize: '0.75rem', 
+                      background: '#0b63f6', 
+                      color: '#fff', 
+                      border: 'none', 
+                      borderRadius: 6, 
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 4,
+                      fontWeight: 600
+                    }}
+                  >
+                    Pagar <ExternalLink size={12} />
+                  </button>
+                )}
               </div>
             )
           })}
@@ -214,7 +303,10 @@ export default function MyPayments() {
       {/* Historial de pagos */}
       {orders.length > 0 && (
         <div className="card">
-          <h3 style={{ margin: '0 0 16px 0' }}>Historial de pagos</h3>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+            <Receipt size={20} style={{ color: '#0b63f6' }} />
+            <h3 style={{ margin: 0 }}>Historial de pagos</h3>
+          </div>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
               <thead style={{ background: '#f3f4f6' }}>
@@ -287,4 +379,3 @@ export default function MyPayments() {
     </div>
   )
 }
-
