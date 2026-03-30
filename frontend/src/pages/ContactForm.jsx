@@ -62,8 +62,8 @@ export default function ContactForm() {
 
     setLoading(true)
     try {
-      // Usamos la ruta relativa al baseURL definido en services/api.js
-      await API.post('/contact', {
+      // Sin barra inicial para que sea /api/contact
+      await API.post('contact', {
         name: formData.name.trim(),
         email: formData.email.trim(),
         phone: formData.phone.trim() || null,

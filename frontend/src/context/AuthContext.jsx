@@ -38,8 +38,8 @@ export function AuthProvider({ children }) {
 
   const login = async ({ email, password }) => {
     try {
-      // Si el baseURL de API ya incluye /api, aquí solo usamos /auth/login
-      const { data } = await API.post("/auth/login", { email, password });
+      // Usamos ruta relativa para que se sume al baseURL (/api)
+      const { data } = await API.post("auth/login", { email, password });
       
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
@@ -64,7 +64,7 @@ export function AuthProvider({ children }) {
 
   const register = async ({ name, email, password, role, documentType, documentNumber, inviteCode }) => {
     try {
-      await API.post("/auth/register", { name, email, password, role, documentType, documentNumber, inviteCode });
+      await API.post("auth/register", { name, email, password, role, documentType, documentNumber, inviteCode });
       return { success: true };
     } catch (err) {
       return { success: false, message: err.response?.data?.msg || "No se pudo conectar al servidor." };
@@ -73,7 +73,7 @@ export function AuthProvider({ children }) {
 
   const updateProfile = async (updates) => {
     try {
-      const { data } = await API.patch('/auth/profile', updates);
+      const { data } = await API.patch('auth/profile', updates);
       if (data.user) {
         // update local storage and context user
         localStorage.setItem('user', JSON.stringify(data.user));

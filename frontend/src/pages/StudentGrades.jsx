@@ -123,7 +123,7 @@ export default function StudentGrades() {
   }
 
   // compute average, ignoring null/undefined grades
-  const validGrades = grades.filter(g => typeof g.grade === 'number');
+  const validGrades = grades.filter(g => typeof g.grade === 'number' && !isNaN(g.grade));
   const avg = validGrades.length
     ? validGrades.reduce((sum, g) => sum + g.grade, 0) / validGrades.length
     : 0;
@@ -167,7 +167,7 @@ export default function StudentGrades() {
       {/* Display each period */}
       {sortedPeriods.map((period) => {
         const periodGrades = gradesByPeriod[period];
-        const periodValidGrades = periodGrades.filter(g => typeof g.grade === 'number');
+        const periodValidGrades = periodGrades.filter(g => typeof g.grade === 'number' && !isNaN(g.grade));
         const periodAvg = periodValidGrades.length
           ? periodValidGrades.reduce((sum, g) => sum + g.grade, 0) / periodValidGrades.length
           : 0;
