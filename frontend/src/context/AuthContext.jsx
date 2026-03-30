@@ -50,7 +50,7 @@ export function AuthProvider({ children }) {
       
       // Mensajes de error más específicos
       if (err.code === 'ECONNREFUSED' || err.code === 'ERR_NETWORK') {
-        return { success: false, message: "No se puede conectar al servidor. Verifica que el backend está corriendo en http://localhost:5000" };
+        return { success: false, message: `Error de conexión con el servidor (${API.defaults.baseURL}). Verifica tu conexión o el estado del backend.` };
       }
       
       if (err.response?.status === 0 || !err.response) {
