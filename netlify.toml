@@ -7,7 +7,7 @@
   command = "npm install && npm run build"
 
 [build.environment]
-  NODE_VERSION = "18"
+  NODE_VERSION = "20"
 
 # Redirigir todas las peticiones /api/* hacia tu servidor backend
 # IMPORTANTE: Reemplaza la URL de abajo por tu URL real de Render
