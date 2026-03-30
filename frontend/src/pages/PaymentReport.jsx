@@ -37,7 +37,7 @@ export default function PaymentReport() {
         params.append('status', filterParams.status || filters.status)
       }
 
-      const { data } = await API.get(`/api/admin/payments/report?${params.toString()}`)
+      const { data } = await API.get(`admin/payments/report?${params.toString()}`)
       setReport(data)
       setError('')
     } catch (err) {
@@ -371,7 +371,7 @@ export default function PaymentReport() {
                                 try {
                                   setUpdatingOrder(payment.external_reference)
                                   logger.info('Marcando como pagado:', payment.external_reference)
-                                  await updateOrderStatus(payment.external_reference, 'completed')
+                                await updateOrderStatus(payment.external_reference, 'completed') // Esto usa services/payments.js, asegúrate que ese archivo también esté corregido
                                   logger.debug('✅ Actualizado exitosamente')
                                   setSuccessMsg(`Pago de ${payment.name} marcado como pagado`)
                                   setTimeout(() => setSuccessMsg(''), 3000)

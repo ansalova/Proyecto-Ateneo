@@ -42,7 +42,7 @@ export default function Documentos() {
   const fetchDocuments = async () => {
     try {
       setLoading(true)
-      const { data } = await API.get('/api/documents')
+      const { data } = await API.get('documents')
       setDocuments(data)
       setError('')
     } catch (err) {
@@ -65,7 +65,7 @@ export default function Documentos() {
 
   const fetchStudents = async () => {
     try {
-      const { data } = await API.get('/api/teacher/students')
+      const { data } = await API.get('teacher/students')
       setStudents(data)
     } catch (err) {
       console.error('Error al cargar estudiantes:', err)
@@ -164,7 +164,7 @@ export default function Documentos() {
       if (formData.file) data.append('file', formData.file)
       data.append('is_public', String(formData.is_public)) // Convertir booleano a string explícitamente
 
-      await API.post('/api/documents', data, {
+      await API.post('documents', data, {
         headers: { 'Content-Type': 'multipart/form-data' }
       })
       
@@ -207,7 +207,7 @@ export default function Documentos() {
   const confirmDelete = async () => {
     if (!toDeleteId) return
     try {
-      await API.delete(`/api/documents/${toDeleteId}`)
+      await API.delete(`documents/${toDeleteId}`)
       setConfirmOpen(false)
       setToDeleteId(null)
       fetchDocuments()

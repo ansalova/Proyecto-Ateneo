@@ -21,7 +21,7 @@ export default function Anuncios() {
   const fetchAnnouncements = async () => {
     try {
       setLoading(true)
-      const { data } = await API.get('/api/announcements')
+      const { data } = await API.get('announcements')
       setAnnouncements(data)
       
       // Marcar todos los anuncios no leídos como leídos en una sola petición
@@ -31,13 +31,13 @@ export default function Anuncios() {
       
       if (unreadIds.length > 0) {
         try {
-          await API.post('/api/announcements/mark-read-batch', { ids: unreadIds })
+          await API.post('announcements/mark-read-batch', { ids: unreadIds })
         } catch (err) {
           // Si falla la petición batch, fallback: intentar individual (pero no bloquea)
           console.warn('Batch mark-read falló, intentando individual:', err)
           for (const id of unreadIds) {
             try {
-              await API.post(`/api/announcements/${id}/mark-read`)
+              await API.post(`announcements/${id}/mark-read`)
             } catch (e) {
               console.error(`Error marking announcement ${id} as read:`, e)
             }
@@ -62,7 +62,7 @@ export default function Anuncios() {
     }
 
     try {
-      await API.post('/api/announcements', formData)
+      await API.post('announcements', formData)
       setFormData({ title: '', content: '' })
       setShowForm(false)
       fetchAnnouncements()
@@ -81,7 +81,7 @@ export default function Anuncios() {
   const confirmDelete = async () => {
     if (!toDeleteId) return
     try {
-      await API.delete(`/api/announcements/${toDeleteId}`)
+      await API.delete(`announcements/${toDeleteId}`)
       setConfirmOpen(false)
       setToDeleteId(null)
       fetchAnnouncements()

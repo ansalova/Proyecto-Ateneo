@@ -21,7 +21,7 @@ export default function StudentProfile() {
     const fetchData = async () => {
       try {
         setError("");
-        const { data, status } = await API.get(`/api/teacher/students/${id}/grades?t=${Date.now()}`, {
+        const { data, status } = await API.get(`teacher/students/${id}/grades?t=${Date.now()}`, {
           headers: { "Cache-Control": "no-cache" }
         });
         if (status !== 200 || !data || !data.student) {
@@ -77,13 +77,13 @@ export default function StudentProfile() {
     }
     try {
       setSaving((prev) => ({ ...prev, [subject]: true }));
-      await API.put(`/api/teacher/grades/${id}`, {
+      await API.put(`teacher/grades/${id}`, {
         subject,
         period: selectedPeriod,
         grade: Math.round(val * 10) / 10
       });
       // Forzar recarga sin caché
-      const { data } = await API.get(`/api/teacher/students/${id}/grades?t=${Date.now()}`, {
+      const { data } = await API.get(`teacher/students/${id}/grades?t=${Date.now()}`, {
         headers: { "Cache-Control": "no-cache" }
       });
       setGrades(data.grades || []);
