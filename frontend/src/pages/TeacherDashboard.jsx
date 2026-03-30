@@ -10,7 +10,7 @@ export default function TeacherDashboard() {
   useEffect(() => {
     const fetchStudents = async () => {
       try {
-        const s = await API.get("/api/teacher/students");
+        const s = await API.get("teacher/students");
         setStudents(s.data);
       } catch (error) {
         console.error("Error cargando estudiantes", error);

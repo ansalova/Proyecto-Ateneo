@@ -23,10 +23,10 @@ export default function AdminDashboard() {
     try {
       setLoading(true)
       const [statsRes, paymentsRes, usersRes, activityRes] = await Promise.all([
-        API.get('/api/admin/stats'),
-        API.get('/api/admin/payments/report'),
-        API.get('/api/admin/users'),
-        API.get('/api/admin/activity')
+        API.get('admin/stats'),
+        API.get('admin/payments/report'),
+        API.get('admin/users'),
+        API.get('admin/activity')
       ])
 
       setStats(statsRes.data)

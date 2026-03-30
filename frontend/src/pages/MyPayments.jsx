@@ -37,13 +37,13 @@ export default function MyPayments() {
       setError('')
 
       // Cargar estado de pagos (incluye past months)
-      const statusRes = await API.get('/api/payments/my-status')
+      const statusRes = await API.get('payments/my-status')
       logger.debug('Status response:', statusRes.data)
       setMonthStatus(statusRes.data.monthStatus || {})
       setAccountStartMonth(statusRes.data.accountStartMonth || '')
 
       // Cargar historial de órdenes
-      const ordersRes = await API.get('/api/payments/orders')
+      const ordersRes = await API.get('payments/orders')
       logger.debug('Orders response:', ordersRes.data)
       setOrders(ordersRes.data || [])
     } catch (err) {
