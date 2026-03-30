@@ -12,7 +12,7 @@ export default function PaymentHistory() {
     const fetchOrders = async () => {
       try {
         setLoading(true)
-        const { data } = await API.get('/api/payments/orders')
+        const { data } = await API.get('payments/orders')
         setOrders(data)
         setError('')
       } catch (err) {

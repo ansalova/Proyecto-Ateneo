@@ -25,7 +25,8 @@ export default function Profile() {
   useEffect(() => {
     async function load() {
       try {
-        const { data } = await API.get('/api/auth/profile');
+        // Eliminamos /api/ y la barra inicial para usar la ruta relativa al baseURL
+        const { data } = await API.get('auth/profile');
         const u = data.user;
         setVerified(u.verified);
         setForm({

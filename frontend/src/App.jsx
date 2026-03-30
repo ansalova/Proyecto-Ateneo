@@ -36,7 +36,7 @@ import TeacherRoute from "./components/TeacherRoute";
 function BackendStatus() {
   const [ok, setOk] = useState(true);
   useEffect(() => {
-    API.get('/api/health')
+    API.get('health')
       .then(() => setOk(true))
       .catch((err) => {
         console.error('Backend health check failed', err);
