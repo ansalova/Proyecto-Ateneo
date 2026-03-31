@@ -3,7 +3,8 @@ import API from './api'
 
 // Inicia un checkout real dependiendo del método
 export async function startCheckout({ method, amount, metadata }) {
-  const { data } = await API.post('/api/payments/checkout', { method, amount, metadata })
+  // Usamos ruta relativa sin /api/ inicial
+  const { data } = await API.post('payments/checkout', { method, amount, metadata })
   return data
 }
 
@@ -37,6 +38,7 @@ export async function processPayment({ amount, metadata, method = 'nequi' }) {
 
 // Permite a un administrador cambiar el estado de una orden
 export async function updateOrderStatus(reference, status) {
-  const { data } = await API.patch(`/api/payments/orders/${reference}`, { status });
+  // Usamos ruta relativa
+  const { data } = await API.patch(`payments/orders/${reference}`, { status });
   return data;
 }
