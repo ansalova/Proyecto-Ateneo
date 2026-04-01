@@ -171,23 +171,19 @@ Asegurate de:
 
 ### Deploy manual (si GitHub Actions falla)
 
-#### Backend (Heroku example)
+#### Backend (Render)
 
-```bash
-cd backend
-heroku login
-heroku git:remote -a tu-app-nombre
-git push heroku main
-```
+1. Ve a [render.com](https://render.com) y crea cuenta
+2. New > Web Service > Connect GitHub repo (este repo, rama main)
+3. Runtime: Node, Build: `npm install`, Start: `npm start`
+4. Agrega env vars: DATABASE_URL, JWT_SECRET, etc. (ver backend/render.yaml)
+5. Deploy automático en cada push
 
-#### Frontend (Vercel example)
+#### Frontend (Render)
 
-```bash
-cd frontend
-npm run build
-# Luego deploy el contenido de dist/ a tu hosting
-# O usar: vercel --prod
-```
+1. New > Static Site > Connect GitHub repo (este repo, rama main)
+2. Root: `./frontend`, Build: `npm install && npm run build`, Publish: `dist`
+3. Deploy automático en cada push (ver frontend/render.yaml)
 
 ## Mejoras Futuras
 

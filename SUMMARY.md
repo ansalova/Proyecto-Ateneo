@@ -322,7 +322,7 @@ UI Components: ⚠️ 50% (manual testing recommended)
 ### Infrastructure (Monthly)
 - Database (PostgreSQL): $15-30 (AWS RDS micro)
 - VPS for Backend: $5-15 (DigitalOcean, Heroku)
-- CDN/Frontend: $5-10 (Vercel, Netlify)
+- CDN/Frontend: $5-10 (Render)
 - Email Service: $0-10 (SMTP included)
 - DNS/Domain: $10-15/year
 - **Total**: ~$35-65/month (starting)

@@ -254,19 +254,12 @@ Búsqueda rápida:
 
 ## 🚀 Deployment Quick Reference
 
-### Local → Staging (5-10 min luego de merging)
-1. Merge a rama `develop`
-2. GitHub Actions automáticamente deploya a staging
-3. Verifica en: `https://staging.tudominio.com`
-
-### Staging → Production (10-15 min con aprobación)
-1. Create Pull Request `develop → main`
-2. Pasa review + todos los tests
-3. Merge a `main`
-4. GitHub Actions crea deployment workflow
-5. Click "Approve" en Actions (si configuraste manual)
-6. Deploy automático a production
-7. Verifica en: `https://tudominio.com`
+### Local → Render (5 min)
+1. Push a main
+2. Render auto-deploys desde GitHub
+3. Backend: https://tu-backend.onrender.com
+4. Frontend: https://tu-frontend.onrender.com
+5. Configura env vars en Render Dashboard (ver render.yaml)
 
 Ver detalles en: `DEPLOY.md`
 
