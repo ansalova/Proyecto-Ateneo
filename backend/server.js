@@ -23,7 +23,7 @@ connectDB();
 const app = express();
 
 // CORS configuration: in production use configured origins, in dev allow localhost origins
-const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+const frontendUrl = process.env.FRONTEND_URL || 'https://colegio-ateneo-frontend.onrender.com';
 const extraOrigins = process.env.EXTRA_ORIGINS ? process.env.EXTRA_ORIGINS.split(',').map(o => o.trim()) : [];
 
 if (process.env.NODE_ENV === 'production') {
