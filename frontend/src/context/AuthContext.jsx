@@ -39,7 +39,7 @@ export function AuthProvider({ children }) {
   const login = async ({ email, password }) => {
     try {
       // Usamos ruta relativa para que se sume al baseURL (/api)
-      const { data } = await API.post("auth/login", { email, password });
+      const { data } = await API.post("api/auth/login", { email, password });
       
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
