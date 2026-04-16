@@ -126,7 +126,7 @@ describe('Payment Flow - Validación de Datos', () => {
     API.patch = jest.fn().mockResolvedValue(fake);
 
     const res = await updateOrderStatus('ATENEO-123', 'completed');
-    expect(API.patch).toHaveBeenCalledWith('/api/payments/orders/ATENEO-123', { status: 'completed' });
+    expect(API.patch).toHaveBeenCalledWith('/payments/orders/ATENEO-123', { status: 'completed' });
     expect(res.success).toBe(true);
   });
 });

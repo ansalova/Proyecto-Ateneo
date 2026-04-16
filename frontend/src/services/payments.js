@@ -4,7 +4,7 @@ import API from './api'
 // Inicia un checkout real dependiendo del método
 export async function startCheckout({ method, amount, metadata }) {
   // Usamos ruta relativa sin /api/ inicial
-  const { data } = await API.post('api/payments/checkout', { method, amount, metadata })
+  const { data } = await API.post('payments/checkout', { method, amount, metadata })
   return data
 }
 

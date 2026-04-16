@@ -7,7 +7,7 @@ try { BACKEND_URL = BACKEND_URL.replace(/\/$/, '') } catch(e) {}
 console.log('Backend URL:', BACKEND_URL)
 
 const API = axios.create({
-  baseURL: BACKEND_URL,
+  baseURL: BACKEND_URL + '/api',
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json'

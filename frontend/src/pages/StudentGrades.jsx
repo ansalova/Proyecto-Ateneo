@@ -27,7 +27,7 @@ export default function StudentGrades() {
         
         // Forzar recarga sin caché con timestamp
         const timestamp = new Date().getTime();
-        const url = `api/student/mi-perfil/calificaciones?t=${timestamp}`;
+        const url = `student/mi-perfil/calificaciones?t=${timestamp}`;
         logger.info('📡 Petición a:', url);
         
         const response = await API.get(url);

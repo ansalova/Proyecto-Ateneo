@@ -27,10 +27,10 @@ export default function Header() {
     if (user) {
       const fetchUnreadData = async () => {
         try {
-          const announcementRes = await API.get('/api/announcements/new-count')
+          const announcementRes = await API.get('announcements/new-count')
           setUnreadCount(announcementRes.data.unread_count)
           
-          const messagesRes = await API.get('/api/messages/unread/count')
+          const messagesRes = await API.get('messages/unread/count')
           // backend returns { unread_count: N }
           setUnreadMessages(messagesRes.data.unread_count || 0)
         } catch (err) {

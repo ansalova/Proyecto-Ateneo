@@ -39,7 +39,7 @@ export function AuthProvider({ children }) {
   const login = async ({ email, password }) => {
     try {
       // Usamos ruta relativa para que se sume al baseURL (/api)
-      const { data } = await API.post("api/auth/login", { email, password });
+      const { data } = await API.post("auth/login", { email, password });
       
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
@@ -64,7 +64,7 @@ export function AuthProvider({ children }) {
 
   const register = async ({ name, email, password, role, documentType, documentNumber, inviteCode }) => {
     try {
-      await API.post("api/auth/register", { name, email, password, role, documentType, documentNumber, inviteCode });
+      await API.post("auth/register", { name, email, password, role, documentType, documentNumber, inviteCode });
       return { success: true };
     } catch (err) {
       return { success: false, message: err.response?.data?.msg || "No se pudo conectar al servidor." };
