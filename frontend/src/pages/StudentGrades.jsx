@@ -27,7 +27,7 @@ export default function StudentGrades() {
         
         // Forzar recarga sin caché con timestamp
         const timestamp = new Date().getTime();
-        const url = `student/mi-perfil/calificaciones?t=${timestamp}`;
+        const url = `api/student/mi-perfil/calificaciones?t=${timestamp}`;
         logger.info('📡 Petición a:', url);
         
         const response = await API.get(url);
@@ -55,7 +55,7 @@ export default function StudentGrades() {
           if (idxB === -1) idxB = 99;
           return idxA - idxB;
         });
-        logger.debug("Grades procesadas y ordenadas", { sortedGrades }); // Envolver en objeto para mayor claridad del linter
+        console.log(sortedGrades);
         setGrades(sortedGrades);
       } catch (err) {
         logger.error("Error fetching grades:", err);

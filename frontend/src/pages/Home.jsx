@@ -46,7 +46,7 @@ export default function Home() {
   const loadPaymentStatus = async () => {
     try {
       setLoadingStatus(true)
-      const { data } = await API.get('payments/my-status')
+      const { data } = await API.get('api/payments/my-status')
       setMonthStatus(data)
     } catch (error) {
       console.error('Error loading payment status:', error)
