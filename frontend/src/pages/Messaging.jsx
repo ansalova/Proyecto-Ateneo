@@ -82,7 +82,7 @@ export default function Messaging() {
 
   const fetchUnreadCount = async () => {
     try {
-      const response = await api.get('messages/unread/count')
+      const response = await api.get('/messages/unread/count')
       setUnreadCount(response.data.count || 0)
     } catch (err) {
       console.error('fetchUnreadCount:', err)
@@ -93,7 +93,7 @@ export default function Messaging() {
     try {
       setLoadingMessages(true)
       // Si hay un targetId, filtramos la conversación con ese usuario
-      const url = targetId ? `/api/messages/?folder=inbox&contactId=${targetId}` : '/api/messages/?folder=inbox'
+      const url = targetId ? `/messages/?folder=inbox&contactId=${targetId}` : '/messages/?folder=inbox'
       const response = await api.get(url)
       const data = response.data || []
       setMessages(data)
@@ -101,7 +101,7 @@ export default function Messaging() {
       // Auto-marcar como leídos los mensajes recibidos en esta conversación
       if (targetId) {
         const unread = data.filter(m => !m.is_read && m.recipient_id === user?.id)
-        unread.forEach(m => api.put(`/api/messages/${m.id}/read`).catch(() => {}))
+        unread.forEach(m => api.put(`/messages/${m.id}/read`).catch(() => {}))
         if (unread.length > 0) fetchUnreadCount()
       }
     } catch (err) {
@@ -116,8 +116,8 @@ export default function Messaging() {
     try {
       setLoadingUsers(true)
       const url = search.trim() 
-        ? `/api/messages/users/available?search=${encodeURIComponent(search)}`
-        : '/api/messages/users/available'
+        ? `/messages/users/available?search=${encodeURIComponent(search)}`
+        : '/messages/users/available'
       const response = await api.get(url)
       setAvailableUsers(Array.isArray(response.data) ? response.data : [])
     } catch (err) {
@@ -166,7 +166,7 @@ export default function Messaging() {
 
     try {
       setIsSending(true)
-      await api.post('/api/messages/send', composeData)
+      await api.post('/messages/send', composeData)
       setComposeData(prev => ({ ...prev, subject: '', content: '' }))
       setSuccess('Mensaje enviado ✓')
       setTimeout(() => setSuccess(''), 3000)
@@ -224,7 +224,7 @@ export default function Messaging() {
 
   const handleMarkAsRead = async (messageId) => {
     try {
-      await api.put(`/api/messages/${messageId}/read`)
+      await api.put(`/messages/${messageId}/read`)
       fetchMessages()
       fetchUnreadCount()
     } catch (err) {
@@ -240,7 +240,7 @@ export default function Messaging() {
   const confirmDelete = async (mode = 'me') => {
     if (!messageForDelete) return
     try {
-      await api.delete(`/api/messages/${messageForDelete.id}?mode=${mode}`)
+      await api.delete(`/messages/${messageForDelete.id}?mode=${mode}`)
       fetchMessages(composeData.recipientId)
     } catch (err) {
       console.error('delete:', err)
