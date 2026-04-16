@@ -82,7 +82,7 @@ export default function Messaging() {
 
   const fetchUnreadCount = async () => {
     try {
-      const response = await api.get('/api/messages/unread/count')
+      const response = await api.get('messages/unread/count')
       setUnreadCount(response.data.count || 0)
     } catch (err) {
       console.error('fetchUnreadCount:', err)

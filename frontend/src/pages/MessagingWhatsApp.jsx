@@ -75,7 +75,7 @@ export default function Messaging() {
   // Fetch functions...
   const fetchUnreadCount = async () => {
     try {
-      const response = await api.get('/api/messages/unread/count')
+      const response = await api.get('messages/unread/count')
       setUnreadCount(response.data.count || 0)
     } catch (err) {
       console.error(err)
@@ -85,7 +85,7 @@ export default function Messaging() {
   const fetchMessages = async (recipientId) => {
     try {
       setLoadingMessages(true)
-      const response = await api.get(`/api/messages?recipientId=${recipientId}`)
+      const response = await api.get(`messages?recipientId=${recipientId}`)
       setMessages(response.data || [])
     } catch (err) {
       setError('Error cargando mensajes')
