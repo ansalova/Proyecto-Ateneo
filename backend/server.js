@@ -83,6 +83,9 @@ app.use("/api/contact", contactRoutes);
 
 app.get("/", (req, res) => res.json({ status: 'ok', msg: "API funcionando correctamente ✔" }));
 app.get("/api/health", (req, res) => res.json({ status: 'healthy', timestamp: new Date().toISOString() }));
+app.get("/health", (req, res) => {
+  res.json({ status: 'ok', message: 'Backend funcionando 🚀' });
+});
 
 app.use((err, req, res, next) => {
   console.error("🔥 Error en el servidor:", err);
